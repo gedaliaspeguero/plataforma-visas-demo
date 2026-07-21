@@ -244,7 +244,9 @@ const render = {
     const c = document.getElementById("contenido");
     c.innerHTML = `
       <h1>¿A nombre de quién es la cita?</h1>
-      <p class="subtitulo">Aquí te llegará la confirmación y todos los avisos.</p>
+      <p class="subtitulo">${MODO_DEMO_PUBLICA
+        ? "Esta es una demostración: los datos no se enviarán ni se guardarán."
+        : "Aquí te llegará la confirmación y todos los avisos."}</p>
       <div class="opciones" style="margin-bottom:20px;">
         <input id="input-nombre" type="text" placeholder="Nombre completo"
           style="padding:16px 18px; border:1.5px solid var(--gris-claro); border-radius:var(--radio); font-size:16px; font-family:inherit;" />
@@ -278,7 +280,7 @@ const render = {
     const c = document.getElementById("contenido");
     const precioConocido = estado.caso.precioUSD !== null && estado.caso.precioUSD !== undefined;
     c.innerHTML = `
-      <h1>Confirma y paga tu consulta</h1>
+      <h1>${MODO_DEMO_PUBLICA ? "Revisa tu consulta de prueba" : "Confirma y paga tu consulta"}</h1>
       <div class="resumen-caja">
         <div class="resumen-fila">
           <span class="resumen-etiqueta">Cita</span>
@@ -294,12 +296,18 @@ const render = {
         </div>
         <div class="precio-grande">
           <div class="precio-numero">${precioConocido ? formatearPrecio(estado.caso.precioUSD) : "Por confirmar"}</div>
-          <div class="precio-nota">Si no confirmamos tu cita en 24 horas, te devolvemos el 100%</div>
+          <div class="precio-nota">${MODO_DEMO_PUBLICA
+            ? "Simulación para conocer cómo funcionará el proceso"
+            : "Si no confirmamos tu cita en 24 horas, te devolvemos el 100%"}</div>
         </div>
       </div>
-      <p class="aviso-precio">Pago de prueba — todavía no se cobra dinero real</p>
+      <p class="aviso-precio">${MODO_DEMO_PUBLICA
+        ? "Demo pública: no se cobra, no se crea una cita y no se envían datos"
+        : "Pago de prueba — todavía no se cobra dinero real"}</p>
       <p class="subtitulo" id="error-pago" style="color:var(--coral-dark); display:none; margin-top:16px;"></p>
-      <button class="boton-primario" id="btn-pagar" style="margin-top:20px;">Pagar y confirmar mi cita</button>
+      <button class="boton-primario" id="btn-pagar" style="margin-top:20px;">${MODO_DEMO_PUBLICA
+        ? "Completar demostración"
+        : "Pagar y confirmar mi cita"}</button>
     `;
     document.getElementById("btn-pagar").onclick = async () => {
       const boton = document.getElementById("btn-pagar");
@@ -333,8 +341,8 @@ const render = {
           throw new Error(resultado.error || "error_desconocido");
         }
         estado.token = resultado.token;
-        estado.correoEnviado = await notificarCita(resultado.token);
-        if (!estado.correoEnviado) {
+        estado.correoEnviado = MODO_DEMO_PUBLICA ? null : await notificarCita(resultado.token);
+        if (!MODO_DEMO_PUBLICA && !estado.correoEnviado) {
           // Un solo reintento — la cita ya está paga y guardada, esto solo
           // es para no dejar al cliente sin su correo por un fallo pasajero.
           estado.correoEnviado = await notificarCita(resultado.token);
@@ -352,6 +360,21 @@ const render = {
 
   confirmacion() {
     const c = document.getElementById("contenido");
+    if (MODO_DEMO_PUBLICA) {
+      c.innerHTML = `
+        <h1>¡Demostración completada, ${escapeHtml(estado.nombre)}!</h1>
+        <p class="subtitulo">Recorriste el flujo completo para <strong>${escapeHtml(estado.caso.nombre)}</strong>.</p>
+        <div class="resumen-caja">
+          <div class="resumen-fila">
+            <span class="resumen-etiqueta">Modo de demostración</span>
+            <span class="resumen-valor">Sin cita ni pago real</span>
+          </div>
+        </div>
+        <p class="aviso-precio">No guardamos tus datos ni enviamos correos. Cuando activemos el servicio, aquí recibirás la confirmación y los próximos pasos.</p>
+        <a class="boton-primario" href="index.html">Volver al inicio</a>
+      `;
+      return;
+    }
     c.innerHTML = `
       <h1>¡Listo, ${escapeHtml(estado.nombre)}!</h1>
       <p class="subtitulo">Tu cita para <strong>${escapeHtml(estado.caso.nombre)}</strong> el ${nombreDelDia(estado.fecha)} a las ${estado.hora} quedó registrada.</p>

@@ -1,4 +1,30 @@
-const SUPABASE_CONFIGURADO = !SUPABASE_URL.includes("TU-PROYECTO");
+const MODO_DEMO_PUBLICA = typeof DEMO_PUBLICA !== "undefined" && DEMO_PUBLICA === true;
+const SUPABASE_CONFIGURADO = MODO_DEMO_PUBLICA || !SUPABASE_URL.includes("TU-PROYECTO");
+
+function obtenerDisponibilidadDemo(diasHaciaAdelante) {
+  const dias = [];
+  const partesFecha = new Intl.DateTimeFormat("en-US", {
+    timeZone: "America/Santo_Domingo",
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  }).formatToParts(new Date());
+  const parte = (tipo) => Number(partesFecha.find((item) => item.type === tipo).value);
+  const cursor = new Date(Date.UTC(parte("year"), parte("month") - 1, parte("day") + 1));
+
+  while (dias.length < Math.min(diasHaciaAdelante, 7)) {
+    const diaSemana = cursor.getUTCDay();
+    if (diaSemana !== 0 && diaSemana !== 6) {
+      dias.push({
+        fecha: formatearFechaISO(cursor),
+        horas: ["09:00", "10:00", "14:00", "15:00"],
+      });
+    }
+    cursor.setUTCDate(cursor.getUTCDate() + 1);
+  }
+
+  return { total_consultores: 2, dias };
+}
 
 async function llamarRPC(nombreFuncion, parametros) {
   const respuesta = await fetch(`${SUPABASE_URL}/rest/v1/rpc/${nombreFuncion}`, {
@@ -22,6 +48,7 @@ function formatearFechaISO(fecha) {
 }
 
 async function obtenerDisponibilidad(diasHaciaAdelante = 14) {
+  if (MODO_DEMO_PUBLICA) return obtenerDisponibilidadDemo(diasHaciaAdelante);
   const hoy = new Date();
   const limite = new Date();
   limite.setDate(hoy.getDate() + diasHaciaAdelante);
@@ -32,6 +59,9 @@ async function obtenerDisponibilidad(diasHaciaAdelante = 14) {
 }
 
 async function crearCita(datos) {
+  if (MODO_DEMO_PUBLICA) {
+    return { ok: true, token: "demo-publica", id: "demo-publica" };
+  }
   return llamarRPC("visas_crear_cita", {
     p_nombre: datos.nombre,
     p_email: datos.email,
@@ -95,6 +125,7 @@ async function entrarReunionCliente(token) {
 }
 
 async function notificarCita(token) {
+  if (MODO_DEMO_PUBLICA) return true;
   try {
     const respuesta = await fetch(`${SUPABASE_FUNCTIONS_URL}/visas-notificar-cita`, {
       method: "POST",
