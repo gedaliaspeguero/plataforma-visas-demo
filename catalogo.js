@@ -32,6 +32,166 @@ const SERVICIOS = [
 
 const SERVICIO_POR_DEFECTO = "orientacion";
 
+// ---------- En qué punto va el proceso de la persona ----------
+// Toda solicitud empieza de una de dos formas: desde cero, o continuando algo
+// que ya existe. Residencia es el único caso que además distingue la etapa
+// exacta, porque cada etapa se identifica con números de caso distintos.
+
+// Formatos reales de los números que entrega el consulado / USCIS.
+// Se validan para que la asesora no reciba un número mal copiado.
+const FORMATOS_NUMERO_CASO = {
+  SDO: { prefijos: ["SDO"], digitos: 10, nombre: "número de caso (SDO)" },
+  IOE: { prefijos: ["IOE"], digitos: 10, nombre: "número de recibo (IOE)" },
+  // IVSCA confirmado por Gedalia el 7 ago 2026 (se había dudado con EVSCA).
+  INVOICE: { prefijos: ["IVSCA"], digitos: 11, nombre: "número de invoice" }
+};
+
+function ejemploNumeroCaso(clave) {
+  const f = FORMATOS_NUMERO_CASO[clave];
+  return f ? f.prefijos[0] + "0".repeat(f.digitos) : "";
+}
+
+function descripcionFormato(clave) {
+  const f = FORMATOS_NUMERO_CASO[clave];
+  return `${f.prefijos.join(" o ")} y ${f.digitos} números`;
+}
+
+// Devuelve el número ya normalizado (mayúsculas, sin espacios ni guiones) o
+// el motivo del rechazo, para poder decirle a la persona qué le falta.
+function validarNumeroCaso(valor, clavesAceptadas) {
+  const limpio = String(valor ?? "").toUpperCase().replace(/[\s.-]/g, "");
+  if (!limpio) return { ok: false, motivo: "vacio" };
+  for (const clave of clavesAceptadas) {
+    const f = FORMATOS_NUMERO_CASO[clave];
+    for (const prefijo of f.prefijos) {
+      if (new RegExp(`^${prefijo}\\d{${f.digitos}}$`).test(limpio)) {
+        return { ok: true, valor: limpio };
+      }
+    }
+  }
+  return { ok: false, motivo: "formato" };
+}
+
+const ETAPAS_RESIDENCIA = [
+  {
+    id: "iniciar-peticion",
+    nombre: "Quiero iniciar una petición",
+    detalle: "Todavía no hay nada metido, empiezas desde cero.",
+    grupos: [
+      {
+        titulo: "Cuéntanos de ti",
+        campos: [
+          { id: "nombre_completo", etiqueta: "Tu nombre completo, igual que en tu acta de nacimiento", tipo: "texto" },
+          { id: "fecha_nacimiento", etiqueta: "Tu fecha de nacimiento", tipo: "fecha" },
+          {
+            id: "rol", etiqueta: "¿Tú estás pidiendo, o a ti te están pidiendo?", tipo: "opcion",
+            opciones: [
+              { valor: "peticionario", texto: "Yo estoy pidiendo a alguien" },
+              { valor: "beneficiario", texto: "A mí me están pidiendo" }
+            ]
+          }
+        ]
+      }
+    ]
+  },
+  {
+    id: "seguimiento",
+    nombre: "Ya tengo una petición y quiero darle seguimiento",
+    detalle: "La petición ya está metida y quieres saber cómo va.",
+    grupos: [
+      {
+        titulo: "Datos de quien pide",
+        campos: [
+          { id: "nombre_peticionario", etiqueta: "Nombre completo del peticionario, igual que en su acta de nacimiento", tipo: "texto" },
+          { id: "fecha_nacimiento_peticionario", etiqueta: "Fecha de nacimiento del peticionario", tipo: "fecha" }
+        ]
+      },
+      {
+        titulo: "Datos de quien está siendo pedido",
+        campos: [
+          { id: "nombre_beneficiario", etiqueta: "Nombre completo del beneficiario, igual que en su acta de nacimiento", tipo: "texto" },
+          { id: "fecha_nacimiento_beneficiario", etiqueta: "Fecha de nacimiento del beneficiario", tipo: "fecha" }
+        ]
+      },
+      {
+        titulo: "El número de tu caso",
+        campos: [
+          {
+            id: "numero_caso", etiqueta: "Tu número de caso o de recibo", tipo: "numero-caso",
+            acepta: ["SDO", "IOE"],
+            ayuda: "Sirve cualquiera de los dos: el del consulado (SDO) o el recibo de USCIS (IOE)."
+          }
+        ]
+      }
+    ]
+  },
+  {
+    id: "seis-pasos",
+    nombre: "Voy en el proceso de los 6 pasos",
+    detalle: "Tu caso ya pasó a la etapa de documentos y pagos.",
+    grupos: [
+      {
+        titulo: "Las personas del caso",
+        campos: [
+          { id: "nombre_peticionario", etiqueta: "Nombre completo del peticionario", tipo: "texto" },
+          { id: "nombre_beneficiario", etiqueta: "Nombre completo del beneficiario", tipo: "texto" }
+        ]
+      },
+      {
+        titulo: "Los números de tu caso",
+        campos: [
+          { id: "numero_caso", etiqueta: "Número de caso", tipo: "numero-caso", acepta: ["SDO"] },
+          { id: "numero_invoice", etiqueta: "Número de invoice", tipo: "numero-caso", acepta: ["INVOICE"] }
+        ]
+      }
+    ]
+  }
+];
+
+// Para el resto de las categorías: siempre las dos puertas de entrada.
+const ETAPAS_GENERALES = [
+  {
+    id: "nueva",
+    nombre: "Quiero iniciar una solicitud nueva",
+    detalle: "Empiezas desde cero.",
+    grupos: []
+  },
+  {
+    id: "continuar",
+    nombre: "Ya tengo un proceso y quiero continuarlo",
+    detalle: "Ya hiciste algo antes y quieres seguir desde ahí.",
+    grupos: [
+      {
+        titulo: "¿En qué punto va tu proceso?",
+        campos: [
+          {
+            id: "detalle_proceso",
+            etiqueta: "Cuéntanos en pocas palabras qué has hecho y dónde te quedaste",
+            tipo: "parrafo",
+            ayuda: "Con esto tu asesor llega preparado a la reunión."
+          }
+        ]
+      }
+    ]
+  }
+];
+
+function etapasDeCategoria(categoria) {
+  return categoria && categoria.etapas === "residencia" ? ETAPAS_RESIDENCIA : ETAPAS_GENERALES;
+}
+
+function etapaPorId(categoria, id) {
+  return etapasDeCategoria(categoria).find((e) => e.id === id) || null;
+}
+
+// Para el panel, que recibe solo el id guardado en la cita y no la categoría.
+// Los ids no se repiten entre los dos juegos de etapas, así que basta buscar
+// en ambos; si algún día se repitieran, esto devolvería la etapa equivocada.
+function nombreEtapa(id) {
+  const etapa = [...ETAPAS_RESIDENCIA, ...ETAPAS_GENERALES].find((e) => e.id === id);
+  return etapa ? etapa.nombre : id;
+}
+
 function servicioPorId(id) {
   return SERVICIOS.find((s) => s.id === id) || null;
 }
@@ -54,24 +214,26 @@ const CATALOGO_DEFAULT = [
         resumen: "Viajes temporales: turismo, estudio, trabajo religioso, arte o para casarte",
         casos: [
           { id: "b2-turismo", nombre: "Turismo o visita familiar", resumen: "Para pasear o visitar a tu familia en Estados Unidos por un tiempo corto.", precios: { orientacion: null, proceso: null }, visible: true, orden: 1 },
-          { id: "b1-negocios", nombre: "Viaje de negocios", resumen: "Para reuniones, conferencias o trámites de trabajo sin ser empleado allá.", precios: { orientacion: null, proceso: null }, visible: true, orden: 2 },
-          { id: "f1-estudiante", nombre: "Estudiante", resumen: "Para estudiar en una universidad, colegio o instituto en Estados Unidos.", precios: { orientacion: null, proceso: null }, visible: true, orden: 3 },
-          { id: "r1-religioso", nombre: "Trabajo religioso", resumen: "Para trabajar temporalmente en una iglesia u organización religiosa.", precios: { orientacion: null, proceso: null }, visible: true, orden: 4 },
-          { id: "o1-artista", nombre: "Artista o talento excepcional", resumen: "Para artistas, deportistas o profesionales con logros reconocidos.", precios: { orientacion: null, proceso: null }, visible: true, orden: 5 },
-          { id: "k1-prometido", nombre: "Prometido o prometida de ciudadano", resumen: "Para viajar a casarte con un ciudadano americano y luego pedir tu residencia.", precios: { orientacion: null, proceso: null }, visible: true, orden: 6 }
+          { id: "renovar-visa", nombre: "Renovar mi visa", resumen: "Tu visa está por vencer o ya venció y quieres renovarla.", precios: { orientacion: null, proceso: null }, visible: true, orden: 2 },
+          { id: "b1-negocios", nombre: "Viaje de negocios", resumen: "Para reuniones, conferencias o trámites de trabajo sin ser empleado allá.", precios: { orientacion: null, proceso: null }, visible: true, orden: 3 },
+          { id: "f1-estudiante", nombre: "Estudiante", resumen: "Para estudiar en una universidad, colegio o instituto en Estados Unidos.", precios: { orientacion: null, proceso: null }, visible: true, orden: 4 },
+          { id: "r1-religioso", nombre: "Trabajo religioso", resumen: "Para trabajar temporalmente en una iglesia u organización religiosa.", precios: { orientacion: null, proceso: null }, visible: true, orden: 5 },
+          { id: "o1-artista", nombre: "Artista o talento excepcional", resumen: "Para artistas, deportistas o profesionales con logros reconocidos.", precios: { orientacion: null, proceso: null }, visible: true, orden: 6 },
+          { id: "k1-prometido", nombre: "Prometido o prometida de ciudadano", resumen: "Para viajar a casarte con un ciudadano americano y luego pedir tu residencia.", precios: { orientacion: null, proceso: null }, visible: true, orden: 7 }
         ]
       },
       {
         id: "residencia",
         nombre: "Visa de residencia",
         resumen: "Cuando un familiar en Estados Unidos te está pidiendo",
+        // Residencia distingue la etapa exacta del proceso, no solo si empieza
+        // o continúa: cada etapa se identifica con números de caso distintos.
+        etapas: "residencia",
         casos: [
           { id: "peticion-esposo", nombre: "Te pidió tu esposo o esposa", resumen: "Petición familiar de tu cónyuge, ciudadano o residente.", precios: { orientacion: null, proceso: null }, visible: true, orden: 1 },
           { id: "peticion-padres", nombre: "Te pidió tu mamá o papá", resumen: "Petición de un padre o madre ciudadano americano.", precios: { orientacion: null, proceso: null }, visible: true, orden: 2 },
           { id: "peticion-hijo", nombre: "Te pidió tu hijo o hija", resumen: "Petición de un hijo mayor de 21 años, ciudadano americano.", precios: { orientacion: null, proceso: null }, visible: true, orden: 3 },
-          { id: "peticion-hermano", nombre: "Te pidió tu hermano o hermana", resumen: "Petición de un hermano ciudadano americano (proceso más largo).", precios: { orientacion: null, proceso: null }, visible: true, orden: 4 },
-          { id: "retomar-caso", nombre: "Quiero retomar mi caso", resumen: "Ya tenías un caso de residencia abierto y quieres continuarlo.", precios: { orientacion: null, proceso: null }, visible: true, orden: 5 },
-          { id: "cambiar-caso", nombre: "Quiero cambiar mi caso", resumen: "Tu situación cambió y necesitas ajustar tu solicitud.", precios: { orientacion: null, proceso: null }, visible: true, orden: 6 }
+          { id: "peticion-hermano", nombre: "Te pidió tu hermano o hermana", resumen: "Petición de un hermano ciudadano americano (proceso más largo).", precios: { orientacion: null, proceso: null }, visible: true, orden: 4 }
         ]
       },
       {
@@ -79,10 +241,10 @@ const CATALOGO_DEFAULT = [
         nombre: "Ciudadanía y pasaportes",
         resumen: "Trámites de pasaporte americano y ciudadanía para tus hijos",
         casos: [
-          { id: "pasaporte-nuevo", nombre: "Sacar pasaporte nuevo", resumen: "Primera vez que solicitas tu pasaporte americano fuera de Estados Unidos.", precios: { orientacion: null, proceso: null }, visible: true, orden: 1 },
+          { id: "pasaporte-nuevo", nombre: "Solicitar pasaporte nuevo", resumen: "Primera vez que solicitas tu pasaporte americano fuera de Estados Unidos.", precios: { orientacion: null, proceso: null }, visible: true, orden: 1 },
           { id: "pasaporte-renovar", nombre: "Renovar mi pasaporte", resumen: "Tu pasaporte está por vencer o ya venció.", precios: { orientacion: null, proceso: null }, visible: true, orden: 2 },
           { id: "pasaporte-perdido", nombre: "Se me perdió el pasaporte", resumen: "Tu pasaporte se perdió o te lo robaron.", precios: { orientacion: null, proceso: null }, visible: true, orden: 3 },
-          { id: "ciudadania-hijos", nombre: "Sacar la ciudadanía a mis hijos", resumen: "Quieres que tus hijos tengan la ciudadanía americana.", precios: { orientacion: null, proceso: null }, visible: true, orden: 4 }
+          { id: "ciudadania-hijos", nombre: "Solicitar la ciudadanía para mis hijos", resumen: "Quieres que tus hijos tengan la ciudadanía americana.", precios: { orientacion: null, proceso: null }, visible: true, orden: 4 }
         ]
       },
       {
@@ -152,33 +314,9 @@ const CATALOGO_DEFAULT = [
   }
 ];
 
-const CATALOGO_STORAGE_KEY = "catalogo_visas_v2";
+const CATALOGO_STORAGE_KEY = "catalogo_visas_v3";
+const CATALOGO_STORAGE_KEY_V2 = "catalogo_visas_v2";
 const CATALOGO_STORAGE_KEY_V1 = "catalogo_visas_v1";
-
-// La versión 1 guardaba un solo `precioUSD` por caso, porque solo se vendía
-// la consulta 1 a 1. Ese precio es el de la Orientación Rápida de hoy; el de
-// Iniciar Proceso queda por confirmar hasta que lo llenen en el editor.
-function migrarCasoV1(caso) {
-  if (caso.precios) return caso;
-  const { precioUSD, ...resto } = caso;
-  return {
-    ...resto,
-    precios: {
-      orientacion: precioUSD ?? null,
-      proceso: null
-    }
-  };
-}
-
-function migrarCatalogoV1(catalogo) {
-  return catalogo.map((pais) => ({
-    ...pais,
-    categorias: (pais.categorias || []).map((cat) => ({
-      ...cat,
-      casos: (cat.casos || []).map(migrarCasoV1)
-    }))
-  }));
-}
 
 function leerCatalogoGuardado(clave) {
   const guardado = localStorage.getItem(clave);
@@ -192,13 +330,46 @@ function leerCatalogoGuardado(clave) {
   }
 }
 
-function cargarCatalogo() {
-  const v2 = leerCatalogoGuardado(CATALOGO_STORAGE_KEY);
-  if (v2) return v2;
+// Cuando el catálogo de fábrica cambia (se agregan o quitan casos, o se
+// corrige un texto), el guardado del navegador no debe congelar la versión
+// vieja: se parte del de fábrica y solo se rescata lo que el admin editó
+// (precios, visibilidad y orden), buscando cada caso por su id. Así un caso
+// eliminado desaparece y uno nuevo aparece, sin perder los precios puestos.
+function fusionarConDefault(guardado) {
+  const porId = new Map();
+  guardado.forEach((pais) =>
+    (pais.categorias || []).forEach((cat) =>
+      (cat.casos || []).forEach((caso) => porId.set(caso.id, caso))
+    )
+  );
 
-  const v1 = leerCatalogoGuardado(CATALOGO_STORAGE_KEY_V1);
-  if (v1) {
-    const migrado = migrarCatalogoV1(v1);
+  const base = JSON.parse(JSON.stringify(CATALOGO_DEFAULT));
+  base.forEach((pais) =>
+    pais.categorias.forEach((cat) =>
+      cat.casos.forEach((caso) => {
+        const viejo = porId.get(caso.id);
+        if (!viejo) return;
+        caso.precios = {
+          orientacion: precioDelCaso(viejo, "orientacion"),
+          proceso: precioDelCaso(viejo, "proceso")
+        };
+        if (typeof viejo.visible === "boolean") caso.visible = viejo.visible;
+        if (typeof viejo.orden === "number") caso.orden = viejo.orden;
+      })
+    )
+  );
+  return base;
+}
+
+function cargarCatalogo() {
+  const v3 = leerCatalogoGuardado(CATALOGO_STORAGE_KEY);
+  if (v3) return v3;
+
+  const anterior =
+    leerCatalogoGuardado(CATALOGO_STORAGE_KEY_V2) ||
+    leerCatalogoGuardado(CATALOGO_STORAGE_KEY_V1);
+  if (anterior) {
+    const migrado = fusionarConDefault(anterior);
     guardarCatalogo(migrado);
     return migrado;
   }
@@ -211,8 +382,8 @@ function guardarCatalogo(catalogo) {
 }
 
 function restaurarCatalogoDeFabrica() {
-  localStorage.removeItem(CATALOGO_STORAGE_KEY);
-  localStorage.removeItem(CATALOGO_STORAGE_KEY_V1);
+  [CATALOGO_STORAGE_KEY, CATALOGO_STORAGE_KEY_V2, CATALOGO_STORAGE_KEY_V1]
+    .forEach((clave) => localStorage.removeItem(clave));
   return JSON.parse(JSON.stringify(CATALOGO_DEFAULT));
 }
 

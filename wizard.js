@@ -13,6 +13,11 @@ const estado = {
   pais: null,
   categoria: null,
   caso: null,
+  // En qué punto va su proceso, y los datos que pide esa etapa. Viajan
+  // pegados a la cita para que la asesora llegue con el caso ya buscado.
+  etapa: null,
+  datosCaso: {},
+  grupoActual: 0,
   fecha: null,
   hora: null,
   nombre: (parametrosEntrada.get("nombre") || "").slice(0, 120) || null,
@@ -41,8 +46,14 @@ function pantalla(nombre, empujarHistorial = true) {
   const raiz = document.getElementById("pantalla");
   raiz.innerHTML = "";
 
-  const base = { paises: 1, categorias: 2, casos: 3, resumen: 4, fecha: 5, datos: 5, pago: 5 };
-  const totalPasos = PREGUNTA_SERVICIO ? 6 : 5;
+  // "etapa" y sus pantallas de datos cuentan como un solo paso: son la misma
+  // pregunta ("cuál es tu caso") partida en varias pantallas, y si el total
+  // cambiara a mitad del camino la barra daría saltos raros.
+  const base = {
+    paises: 1, categorias: 2, casos: 3, etapa: 4, "caso-datos": 4,
+    resumen: 5, fecha: 6, datos: 6, pago: 6
+  };
+  const totalPasos = PREGUNTA_SERVICIO ? 7 : 6;
   const pasoActual = nombre === "servicio"
     ? 1
     : base[nombre] && base[nombre] + (PREGUNTA_SERVICIO ? 1 : 0);
@@ -77,7 +88,152 @@ function pantalla(nombre, empujarHistorial = true) {
 function irAtras() {
   historial.pop();
   const anterior = historial[historial.length - 1];
+  // Todas las pantallas de datos del caso se llaman igual, así que cuántas
+  // quedan en el historial es lo que dice en cuál estamos al retroceder.
+  if (anterior === "caso-datos") {
+    estado.grupoActual = historial.filter((p) => p === "caso-datos").length - 1;
+  }
   pantalla(anterior, false);
+}
+
+// ---------- Campos de los datos del caso ----------
+
+const ESTILO_CAMPO =
+  "padding:16px 18px; border:1.5px solid var(--gris-claro); border-radius:var(--radio);" +
+  " font-size:16px; font-family:inherit; width:100%;";
+
+function dibujarCampo(campo) {
+  const caja = document.createElement("div");
+  caja.style.display = "flex";
+  caja.style.flexDirection = "column";
+  caja.style.gap = "8px";
+
+  const etiqueta = document.createElement("label");
+  etiqueta.className = "opcion-detalle";
+  etiqueta.style.fontWeight = "600";
+  etiqueta.textContent = campo.etiqueta;
+  etiqueta.setAttribute("for", "campo-" + campo.id);
+  caja.appendChild(etiqueta);
+
+  if (campo.tipo === "opcion") {
+    const grupo = document.createElement("div");
+    grupo.className = "opciones";
+    grupo.id = "campo-" + campo.id;
+    grupo.setAttribute("role", "radiogroup");
+    grupo.setAttribute("aria-label", campo.etiqueta);
+    campo.opciones.forEach((op) => {
+      const boton = document.createElement("button");
+      boton.type = "button";
+      boton.className = "opcion";
+      boton.dataset.valor = op.valor;
+      boton.setAttribute("role", "radio");
+      const elegido = estado.datosCaso[campo.id] === op.valor;
+      boton.setAttribute("aria-checked", elegido ? "true" : "false");
+      if (elegido) boton.classList.add("elegida");
+      boton.innerHTML = `<span class="opcion-titulo">${escapeHtml(op.texto)}</span>`;
+      boton.onclick = () => {
+        grupo.querySelectorAll(".opcion").forEach((b) => {
+          b.classList.remove("elegida");
+          b.setAttribute("aria-checked", "false");
+        });
+        boton.classList.add("elegida");
+        boton.setAttribute("aria-checked", "true");
+        estado.datosCaso[campo.id] = op.valor;
+      };
+      grupo.appendChild(boton);
+    });
+    caja.appendChild(grupo);
+  } else {
+    const entrada = document.createElement(campo.tipo === "parrafo" ? "textarea" : "input");
+    entrada.id = "campo-" + campo.id;
+    entrada.style.cssText = ESTILO_CAMPO;
+    if (campo.tipo === "parrafo") {
+      entrada.rows = 4;
+    } else if (campo.tipo === "fecha") {
+      entrada.type = "date";
+      entrada.max = hoyEnSantoDomingo();
+    } else {
+      entrada.type = "text";
+      if (campo.tipo === "numero-caso") {
+        entrada.autocapitalize = "characters";
+        entrada.spellcheck = false;
+        entrada.placeholder = ejemploNumeroCaso(campo.acepta[0]);
+      }
+    }
+    // Se asigna por propiedad, nunca por HTML: el valor puede venir de algo
+    // que el usuario escribió y no debe interpretarse como markup.
+    entrada.value = estado.datosCaso[campo.id] ?? "";
+    caja.appendChild(entrada);
+  }
+
+  if (campo.ayuda) {
+    const ayuda = document.createElement("p");
+    ayuda.className = "opcion-detalle";
+    ayuda.style.margin = "0";
+    ayuda.textContent = campo.ayuda;
+    caja.appendChild(ayuda);
+  }
+  return caja;
+}
+
+function leerCampo(campo) {
+  if (campo.tipo === "opcion") {
+    const valor = estado.datosCaso[campo.id];
+    if (!valor) return { ok: false, mensaje: "Elige una de las dos opciones." };
+    return { ok: true, valor };
+  }
+
+  const entrada = document.getElementById("campo-" + campo.id);
+  const valor = (entrada.value || "").trim();
+
+  if (campo.tipo === "fecha") {
+    if (!valor) return { ok: false, mensaje: "Falta la fecha de nacimiento." };
+    if (valor > hoyEnSantoDomingo()) {
+      return { ok: false, mensaje: "Esa fecha de nacimiento está en el futuro." };
+    }
+    return { ok: true, valor };
+  }
+
+  if (campo.tipo === "numero-caso") {
+    const revisado = validarNumeroCaso(valor, campo.acepta);
+    if (!revisado.ok) {
+      const formatos = campo.acepta.map(descripcionFormato).join(", o ");
+      return {
+        ok: false,
+        mensaje: revisado.motivo === "vacio"
+          ? "Falta el número. Debe empezar con " + formatos + "."
+          : "Ese número no cuadra. Debe empezar con " + formatos + "."
+      };
+    }
+    return { ok: true, valor: revisado.valor };
+  }
+
+  if (campo.tipo === "parrafo") {
+    if (valor.length < 10) {
+      return { ok: false, mensaje: "Cuéntanos un poco más, con unas pocas palabras basta." };
+    }
+    return { ok: true, valor: valor.slice(0, 1000) };
+  }
+
+  if (valor.length < 2) return { ok: false, mensaje: "Falta completar este dato." };
+  return { ok: true, valor: valor.slice(0, 200) };
+}
+
+// Solo los números de caso se repiten en el resumen: son lo que la persona
+// más fácil copia mal, y lo único que no puede corregir después por su cuenta.
+function filasDatosCaso() {
+  if (!estado.etapa) return "";
+  return estado.etapa.grupos
+    .flatMap((g) => g.campos)
+    .filter((campo) => campo.tipo === "numero-caso" && estado.datosCaso[campo.id])
+    .map(
+      (campo) => `
+        <div class="resumen-fila">
+          <span class="resumen-etiqueta">${escapeHtml(campo.etiqueta)}</span>
+          <span class="resumen-valor">${escapeHtml(estado.datosCaso[campo.id])}</span>
+        </div>`
+    )
+    .join("");
 }
 
 function opcionesActivas(lista) {
@@ -179,10 +335,75 @@ const render = {
       `;
       boton.onclick = () => {
         estado.caso = caso;
-        pantalla("resumen");
+        estado.etapa = null;
+        estado.datosCaso = {};
+        estado.grupoActual = 0;
+        pantalla("etapa");
       };
       lista.appendChild(boton);
     });
+  },
+
+  etapa() {
+    const c = document.getElementById("contenido");
+    c.innerHTML = `
+      <h1>¿En qué punto está tu caso?</h1>
+      <p class="subtitulo">Así tu asesor sabe desde dónde arrancar.</p>
+      <div class="opciones" id="lista-etapas"></div>
+    `;
+    const lista = document.getElementById("lista-etapas");
+    etapasDeCategoria(estado.categoria).forEach((etapa) => {
+      const boton = document.createElement("button");
+      boton.className = "opcion";
+      boton.innerHTML = `
+        <span class="opcion-titulo">${escapeHtml(etapa.nombre)}</span>
+        <span class="opcion-detalle">${escapeHtml(etapa.detalle)}</span>
+      `;
+      boton.onclick = () => {
+        estado.etapa = etapa;
+        estado.datosCaso = {};
+        estado.grupoActual = 0;
+        pantalla(etapa.grupos.length ? "caso-datos" : "resumen");
+      };
+      lista.appendChild(boton);
+    });
+  },
+
+  "caso-datos"() {
+    const c = document.getElementById("contenido");
+    const grupo = estado.etapa.grupos[estado.grupoActual];
+    const ultimo = estado.grupoActual === estado.etapa.grupos.length - 1;
+
+    c.innerHTML = `
+      <h1>${escapeHtml(grupo.titulo)}</h1>
+      <p class="subtitulo">${escapeHtml(estado.etapa.nombre)}</p>
+      <div class="opciones" id="lista-campos" style="margin-bottom:20px;"></div>
+      <p class="subtitulo" id="error-campos" style="color:var(--acento-oscuro); display:none;"></p>
+      <button class="boton-primario" id="btn-continuar">Continuar</button>
+    `;
+
+    const lista = document.getElementById("lista-campos");
+    grupo.campos.forEach((campo) => lista.appendChild(dibujarCampo(campo)));
+
+    document.getElementById("btn-continuar").onclick = () => {
+      const error = document.getElementById("error-campos");
+      for (const campo of grupo.campos) {
+        const resultado = leerCampo(campo);
+        if (!resultado.ok) {
+          error.textContent = resultado.mensaje;
+          error.style.display = "block";
+          return;
+        }
+        estado.datosCaso[campo.id] = resultado.valor;
+      }
+      error.style.display = "none";
+      if (ultimo) {
+        pantalla("resumen");
+      } else {
+        estado.grupoActual += 1;
+        pantalla("caso-datos");
+      }
+    };
   },
 
   resumen() {
@@ -209,6 +430,11 @@ const render = {
           <span class="resumen-etiqueta">Tu caso</span>
           <span class="resumen-valor">${estado.caso.nombre}</span>
         </div>
+        <div class="resumen-fila">
+          <span class="resumen-etiqueta">En qué punto vas</span>
+          <span class="resumen-valor">${escapeHtml(estado.etapa.nombre)}</span>
+        </div>
+        ${filasDatosCaso()}
         <div class="precio-grande">
           <div class="precio-numero">${precioConocido ? formatearPrecio(precio) : "Por confirmar"}</div>
           <div class="precio-nota">${precioConocido
@@ -374,6 +600,8 @@ const render = {
           hora: estado.hora + ":00",
           perfil: estado.perfilQuiz,
           tipoServicio: estado.servicio.id,
+          etapa: estado.etapa.id,
+          datosCaso: estado.datosCaso,
         });
         if (resultado.error === "horario_ocupado") {
           error.textContent = "Justo se ocupó ese horario. Elige otro, por favor.";

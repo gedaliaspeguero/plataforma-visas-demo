@@ -964,6 +964,17 @@ input:focus-visible {
 
 .opcion:active { background: #fdf1ed; border-color: var(--acento); }
 
+/* Opción ya elegida dentro de un grupo (elegir una no avanza de pantalla,
+   así que sin esto no habría forma de ver cuál se marcó). */
+.opcion.elegida {
+  border-color: var(--petroleo);
+  border-width: 2px;
+  background: #f2f7f6;
+  padding: 15.5px 17.5px;
+}
+
+.opcion.elegida .opcion-titulo { color: var(--petroleo); }
+
 .opcion-titulo { font-size: 16px; font-weight: 600; color: var(--tinta); }
 .opcion-detalle { font-size: 13.5px; color: var(--gris); line-height: 1.4; }
 

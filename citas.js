@@ -47,6 +47,19 @@ function formatearFechaISO(fecha) {
   return fecha.toISOString().slice(0, 10);
 }
 
+// El día de hoy en hora de Santo Domingo. Con toISOString() se usaría la
+// fecha UTC, que después de las 8 de la noche local ya es mañana — y toda la
+// lógica de fechas del proyecto (incluida la de Postgres) va en hora local.
+function hoyEnSantoDomingo() {
+  const partes = new Intl.DateTimeFormat("en-CA", {
+    timeZone: "America/Santo_Domingo",
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit"
+  }).format(new Date());
+  return partes; // en-CA entrega directamente AAAA-MM-DD
+}
+
 async function obtenerDisponibilidad(diasHaciaAdelante = 14) {
   if (MODO_DEMO_PUBLICA) return obtenerDisponibilidadDemo(diasHaciaAdelante);
   const hoy = new Date();
@@ -76,6 +89,8 @@ async function crearCita(datos) {
     p_hora: datos.hora,
     p_perfil: datos.perfil ?? null,
     p_tipo_servicio: datos.tipoServicio ?? SERVICIO_POR_DEFECTO,
+    p_etapa: datos.etapa ?? null,
+    p_datos_caso: datos.datosCaso ?? null,
   });
 }
 
