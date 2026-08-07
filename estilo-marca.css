@@ -215,6 +215,7 @@ input:focus-visible {
 }
 
 .hero-acciones { display: flex; gap: 12px; flex-wrap: wrap; }
+.hero-nota { margin: 16px 0 0; color: rgba(255, 255, 255, 0.78); font-size: 12.5px; }
 
 /* ---------- landing: confianza ---------- */
 
@@ -344,12 +345,20 @@ input:focus-visible {
   align-items: stretch;
 }
 
+/* Con dos servicios las tarjetas no deben estirarse a lo ancho de la sección. */
+.precios-dos {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  max-width: 860px;
+}
+
 .precio-card {
   min-width: 0;
   display: flex;
   flex-direction: column;
   padding: 28px 26px 24px;
-  border: 1px solid rgba(17, 19, 24, 0.12);
+  /* Mismo grosor en todas las tarjetas: si la destacada usa un borde distinto,
+     su contenido se desplaza y los botones dejan de alinearse entre sí. */
+  border: 2px solid rgba(17, 19, 24, 0.12);
   border-radius: var(--radio);
   background: var(--blanco);
   color: var(--tinta);
@@ -358,7 +367,7 @@ input:focus-visible {
 }
 
 .precio-card:hover { transform: translateY(-4px); box-shadow: 0 18px 36px rgba(0, 24, 23, 0.2); }
-.precio-card-popular { border: 2px solid var(--acento); }
+.precio-card-popular { border-color: var(--acento); }
 
 .precio-card-cabecera {
   min-height: 34px;
@@ -435,7 +444,46 @@ input:focus-visible {
 }
 
 .escala-servicios div { height: 1px; background: rgba(255, 255, 255, 0.4); }
-.precios-nota { margin: 18px 0 0; color: rgba(255, 255, 255, 0.64); font-size: 11px; text-align: center; }
+.precios-dos + .escala-servicios { max-width: 860px; }
+.precios-nota { margin: 18px 0 0; max-width: 860px; color: rgba(255, 255, 255, 0.64); font-size: 11px; text-align: center; }
+
+/* La evaluación gratis va aparte de las tarjetas de pago: sin fondo blanco,
+   para que nadie la confunda con un servicio que se cobra. */
+.gratis-banda {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 32px;
+  max-width: 860px;
+  margin-top: 44px;
+  padding: 30px 34px;
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  border-radius: var(--radio);
+  background: rgba(255, 255, 255, 0.07);
+}
+
+.gratis-sello {
+  display: inline-flex;
+  align-items: center;
+  min-height: 25px;
+  padding: 5px 10px;
+  border-radius: 5px;
+  background: var(--acento);
+  color: var(--blanco);
+  font-size: 11px;
+  font-weight: 700;
+}
+
+.gratis-banda-texto h3 {
+  margin: 12px 0 7px;
+  font-family: var(--serif);
+  font-size: 31px;
+  font-weight: 600;
+  line-height: 1.04;
+}
+
+.gratis-banda-texto p { margin: 0; max-width: 52ch; color: rgba(255, 255, 255, 0.76); font-size: 14px; line-height: 1.6; }
+.gratis-banda-cta { flex-shrink: 0; min-width: 230px; text-align: center; }
 
 /* ---------- landing: FAQ, cierre y pie ---------- */
 
@@ -509,6 +557,7 @@ input:focus-visible {
   .equipo-foto { min-height: 520px; }
   .precios { grid-template-columns: 1fr; max-width: 680px; margin: 0 auto; }
   .escala-servicios { display: none; }
+  .precios-nota, .gratis-banda { max-width: 680px; margin-left: auto; margin-right: auto; }
   .faq-layout { grid-template-columns: 1fr; gap: 32px; }
   .faq-encabezado .seccion-titulo { max-width: 620px; }
   .pie-landing { grid-template-columns: 1fr 1fr; }
@@ -548,6 +597,9 @@ input:focus-visible {
   .equipo-foto { min-height: 360px; }
   .seccion-servicios .seccion-titulo { font-size: 42px; }
   .precio-card { padding: 25px 22px 22px; }
+  .gratis-banda { align-items: stretch; flex-direction: column; gap: 22px; margin-top: 34px; padding: 26px 22px; }
+  .gratis-banda-texto h3 { font-size: 27px; }
+  .gratis-banda-cta { width: 100%; min-width: 0; }
   .faq { grid-template-columns: 1fr; }
   .faq-encabezado .seccion-titulo { font-size: 42px; }
   .cierre { align-items: stretch; flex-direction: column; padding: 48px 20px; }

@@ -75,6 +75,7 @@ async function crearCita(datos) {
     p_fecha: datos.fecha,
     p_hora: datos.hora,
     p_perfil: datos.perfil ?? null,
+    p_tipo_servicio: datos.tipoServicio ?? SERVICIO_POR_DEFECTO,
   });
 }
 

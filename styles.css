@@ -366,7 +366,27 @@ h1 {
   grid-column: 1 / -1;
 }
 
+/* Cada caso tiene un precio por servicio, así que la fila lleva varios campos. */
+.admin-caso-precios {
+  grid-column: 1 / -1;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px 18px;
+}
+
 .admin-caso-precio {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.admin-precio-etiqueta {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-muted);
+}
+
+.admin-precio-campo {
   display: flex;
   align-items: center;
   gap: 4px;

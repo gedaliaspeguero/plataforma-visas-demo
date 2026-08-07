@@ -1,16 +1,15 @@
-const PASOS_PROCESO = [
-  "Eliges tu horario y pagas tu consulta",
-  "Un consultor confirma tu cita",
-  "Llenas tu formulario de datos",
-  "Entras a tu reunión virtual con el consultor"
-];
-
 // Si el cliente viene del quiz de evaluación, su resultado llega en la URL
 // y viaja pegado a la cita para que la consultora lo vea antes de aceptar.
 const parametrosEntrada = new URLSearchParams(window.location.search);
 
+// El servicio llega elegido desde la landing (?servicio=). Si alguien entra
+// directo a agendar.html sin elegirlo, se le pregunta como primera pantalla:
+// nunca se asume por él, porque cada servicio tiene su propio precio.
+const servicioDeLaUrl = servicioPorId(parametrosEntrada.get("servicio"));
+
 const estado = {
   catalogo: cargarCatalogo(),
+  servicio: servicioDeLaUrl,
   pais: null,
   categoria: null,
   caso: null,
@@ -21,6 +20,13 @@ const estado = {
   token: null,
   perfilQuiz: (parametrosEntrada.get("perfil") || "").slice(0, 200) || null
 };
+
+// Cuando hay que preguntar el servicio, el wizard tiene un paso más.
+const PREGUNTA_SERVICIO = servicioDeLaUrl === null;
+
+function precioActual() {
+  return precioDelCaso(estado.caso, estado.servicio.id);
+}
 
 const historial = [];
 
@@ -35,8 +41,11 @@ function pantalla(nombre, empujarHistorial = true) {
   const raiz = document.getElementById("pantalla");
   raiz.innerHTML = "";
 
-  const totalPasos = 5;
-  const pasoActual = { paises: 1, categorias: 2, casos: 3, resumen: 4, fecha: 5, datos: 5, pago: 5 }[nombre];
+  const base = { paises: 1, categorias: 2, casos: 3, resumen: 4, fecha: 5, datos: 5, pago: 5 };
+  const totalPasos = PREGUNTA_SERVICIO ? 6 : 5;
+  const pasoActual = nombre === "servicio"
+    ? 1
+    : base[nombre] && base[nombre] + (PREGUNTA_SERVICIO ? 1 : 0);
 
   if (pasoActual) {
     const progreso = document.createElement("div");
@@ -84,6 +93,29 @@ function paisTieneCategoriasVisibles(pais) {
 }
 
 const render = {
+  servicio() {
+    const c = document.getElementById("contenido");
+    c.innerHTML = `
+      <h1>¿Cómo quieres que te ayudemos?</h1>
+      <p class="subtitulo">Elige una. Puedes cambiarla más adelante con el botón Atrás.</p>
+      <div class="opciones" id="lista-servicios"></div>
+    `;
+    const lista = document.getElementById("lista-servicios");
+    SERVICIOS.forEach((servicio) => {
+      const boton = document.createElement("button");
+      boton.className = "opcion";
+      boton.innerHTML = `
+        <span class="opcion-titulo">${servicio.nombre}</span>
+        <span class="opcion-detalle">${servicio.resumen}</span>
+      `;
+      boton.onclick = () => {
+        estado.servicio = servicio;
+        pantalla("paises");
+      };
+      lista.appendChild(boton);
+    });
+  },
+
   paises() {
     const c = document.getElementById("contenido");
     c.innerHTML = `
@@ -155,11 +187,16 @@ const render = {
 
   resumen() {
     const c = document.getElementById("contenido");
-    const precioConocido = estado.caso.precioUSD !== null && estado.caso.precioUSD !== undefined;
+    const precio = precioActual();
+    const precioConocido = precio !== null && precio !== undefined;
     c.innerHTML = `
       <h1>Así será tu proceso</h1>
       <p class="subtitulo">Revisa que todo esté correcto antes de agendar.</p>
       <div class="resumen-caja">
+        <div class="resumen-fila">
+          <span class="resumen-etiqueta">Servicio</span>
+          <span class="resumen-valor">${estado.servicio.nombre}</span>
+        </div>
         <div class="resumen-fila">
           <span class="resumen-etiqueta">País</span>
           <span class="resumen-valor">${estado.pais.nombre}</span>
@@ -173,13 +210,15 @@ const render = {
           <span class="resumen-valor">${estado.caso.nombre}</span>
         </div>
         <div class="precio-grande">
-          <div class="precio-numero">${precioConocido ? formatearPrecio(estado.caso.precioUSD) : "Por confirmar"}</div>
-          <div class="precio-nota">${precioConocido ? "Precio de tu consulta" : "Un consultor te confirmará el precio exacto"}</div>
+          <div class="precio-numero">${precioConocido ? formatearPrecio(precio) : "Por confirmar"}</div>
+          <div class="precio-nota">${precioConocido
+            ? `Precio de ${estado.servicio.nombre}`
+            : "Un asesor te confirmará el precio exacto"}</div>
         </div>
       </div>
       <p class="subtitulo" style="margin-bottom:8px; font-weight:600; color:var(--ink);">Estos son los pasos:</p>
       <ol class="pasos-lista">
-        ${PASOS_PROCESO.map((p) => `<li>${p}</li>`).join("")}
+        ${estado.servicio.pasos.map((p) => `<li>${p}</li>`).join("")}
       </ol>
       <button class="boton-primario" id="btn-continuar">Continuar con mi cita</button>
     `;
@@ -278,10 +317,15 @@ const render = {
 
   pago() {
     const c = document.getElementById("contenido");
-    const precioConocido = estado.caso.precioUSD !== null && estado.caso.precioUSD !== undefined;
+    const precio = precioActual();
+    const precioConocido = precio !== null && precio !== undefined;
     c.innerHTML = `
-      <h1>${MODO_DEMO_PUBLICA ? "Revisa tu consulta de prueba" : "Confirma y paga tu consulta"}</h1>
+      <h1>${MODO_DEMO_PUBLICA ? "Revisa tu cita de prueba" : `Confirma y paga tu ${estado.servicio.nombreCorto}`}</h1>
       <div class="resumen-caja">
+        <div class="resumen-fila">
+          <span class="resumen-etiqueta">Servicio</span>
+          <span class="resumen-valor">${estado.servicio.nombre}</span>
+        </div>
         <div class="resumen-fila">
           <span class="resumen-etiqueta">Cita</span>
           <span class="resumen-valor">${nombreDelDia(estado.fecha)} · ${estado.hora}</span>
@@ -295,7 +339,7 @@ const render = {
           <span class="resumen-valor">${escapeHtml(estado.email)}</span>
         </div>
         <div class="precio-grande">
-          <div class="precio-numero">${precioConocido ? formatearPrecio(estado.caso.precioUSD) : "Por confirmar"}</div>
+          <div class="precio-numero">${precioConocido ? formatearPrecio(precio) : "Por confirmar"}</div>
           <div class="precio-nota">${MODO_DEMO_PUBLICA
             ? "Simulación para conocer cómo funcionará el proceso"
             : "Si no confirmamos tu cita en 24 horas, te devolvemos el 100%"}</div>
@@ -325,10 +369,11 @@ const render = {
           categoriaNombre: estado.categoria.nombre,
           casoId: estado.caso.id,
           casoNombre: estado.caso.nombre,
-          precio: estado.caso.precioUSD,
+          precio: precio,
           fecha: estado.fecha,
           hora: estado.hora + ":00",
           perfil: estado.perfilQuiz,
+          tipoServicio: estado.servicio.id,
         });
         if (resultado.error === "horario_ocupado") {
           error.textContent = "Justo se ocupó ese horario. Elige otro, por favor.";
@@ -363,7 +408,7 @@ const render = {
     if (MODO_DEMO_PUBLICA) {
       c.innerHTML = `
         <h1>¡Demostración completada, ${escapeHtml(estado.nombre)}!</h1>
-        <p class="subtitulo">Recorriste el flujo completo para <strong>${escapeHtml(estado.caso.nombre)}</strong>.</p>
+        <p class="subtitulo">Recorriste el flujo completo de <strong>${escapeHtml(estado.servicio.nombre)}</strong> para <strong>${escapeHtml(estado.caso.nombre)}</strong>.</p>
         <div class="resumen-caja">
           <div class="resumen-fila">
             <span class="resumen-etiqueta">Modo de demostración</span>
@@ -394,4 +439,4 @@ const render = {
   }
 };
 
-pantalla("paises");
+pantalla(PREGUNTA_SERVICIO ? "servicio" : "paises");
