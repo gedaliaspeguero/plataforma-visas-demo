@@ -140,6 +140,23 @@ async function entrarReunionCliente(token) {
   return datos;
 }
 
+async function entrarReunionInvitado(token) {
+  const respuesta = await fetch(`${SUPABASE_FUNCTIONS_URL}/visas-reunion-daily`, {
+    method: "POST",
+    headers: { apikey: SUPABASE_ANON_KEY, Authorization: `Bearer ${SUPABASE_ANON_KEY}`, "Content-Type": "application/json" },
+    body: JSON.stringify({ accion: "invitado", token }),
+  });
+  const datos = await respuesta.json();
+  if (!respuesta.ok) throw new Error(datos?.error || "reunion_no_disponible");
+  return datos;
+}
+
+// El enlace que el cliente le pasa a la otra persona. Se arma con la URL de
+// la página actual para que funcione igual en local que en el dominio final.
+function enlaceDeInvitado(invitadoToken) {
+  return new URL(`invitado.html?invitado=${invitadoToken}`, window.location.href).href;
+}
+
 async function notificarCita(token) {
   if (MODO_DEMO_PUBLICA) return true;
   try {

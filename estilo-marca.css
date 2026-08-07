@@ -566,8 +566,17 @@ input:focus-visible {
 
 @media (max-width: 700px) {
   .barra-landing { top: 12px; padding: 0 16px; }
-  .barra-landing .barra-marca { font-size: 23px; }
-  .barra-landing .barra-cta { min-height: 38px; padding: 9px 12px; font-size: 11px; }
+  /* El nombre de la marca es largo: sin esto se parte en dos líneas y empuja
+     al botón a partirse también, dejando la barra del doble de alto. Va sobre
+     `.barra` y no solo sobre `.barra-landing` porque el quiz y el wizard usan
+     la barra genérica, y ahí la marca es todavía más grande. */
+  .barra .barra-marca { font-size: 18px; white-space: nowrap; }
+  .barra .barra-cta {
+    min-height: 38px;
+    padding: 9px 10px;
+    font-size: 10.5px;
+    white-space: nowrap;
+  }
   .hero { min-height: 720px; align-items: flex-end; padding: 120px 20px 54px; }
   .hero::after { background: rgba(8, 14, 15, 0.58); }
   .hero-foto { background-position: 58% center; }
@@ -608,6 +617,14 @@ input:focus-visible {
   .pie-landing { grid-template-columns: 1fr; gap: 30px; padding: 42px 20px 92px; }
   .pie-enlaces { grid-template-columns: 1fr 1fr; }
   .pie-legal { grid-column: auto; }
+}
+
+/* Celulares muy angostos (iPhone SE y parecidos): con el nombre de marca
+   completo, la marca y el botón llegan a tocarse. */
+@media (max-width: 360px) {
+  .barra { gap: 10px; }
+  .barra .barra-marca { font-size: 16px; }
+  .barra .barra-cta { padding: 9px 8px; font-size: 10px; }
 }
 
 @media (prefers-reduced-motion: reduce) {

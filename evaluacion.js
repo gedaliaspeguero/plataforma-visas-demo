@@ -5,7 +5,7 @@
 
 const TEXTOS = {
   WHATSAPP_NUMBER: "19142901691",
-  BRAND_NAME: "VisaCheck RD",
+  BRAND_NAME: "Tu Viaje Legal 360",
 
   INTRO: {
     eyebrow: "Evaluación de perfil — gratis",
@@ -48,9 +48,9 @@ const TEXTOS = {
     ctaAgendar: "Agendar mi consulta con un experto",
     ctaWhatsapp: "Prefiero escribir por WhatsApp",
     ctaShare: "Compartir este test",
-    shareText: "Hice el test de VisaCheck RD para evaluar mi perfil de visa. Pruébalo:",
+    shareText: "Hice el test de Tu Viaje Legal 360 para evaluar mi perfil de visa. Pruébalo:",
     whatsappIntro: (name, caseNumber) =>
-      `Hola, soy ${name || "un usuario"} y acabo de hacer el test de VisaCheck RD.\n\nCaso #${caseNumber}\n\nEste es mi resultado:`,
+      `Hola, soy ${name || "un usuario"} y acabo de hacer el test de Tu Viaje Legal 360.\n\nCaso #${caseNumber}\n\nEste es mi resultado:`,
   },
 
   FOOTER_DISCLAIMER:
