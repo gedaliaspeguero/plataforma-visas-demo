@@ -33,6 +33,15 @@ function precioActual() {
   return precioDelCaso(estado.caso, estado.servicio.id);
 }
 
+// En residencia la etapa se pregunta antes que el caso; en el resto, después.
+function etapaVaPrimero() {
+  return !!(estado.categoria && estado.categoria.etapaPrimero);
+}
+
+function pantallaTrasEtapaYCaso() {
+  return estado.etapa.grupos.length ? "caso-datos" : "resumen";
+}
+
 const historial = [];
 
 function escapeHtml(valor) {
@@ -50,7 +59,9 @@ function pantalla(nombre, empujarHistorial = true) {
   // pregunta ("cuál es tu caso") partida en varias pantallas, y si el total
   // cambiara a mitad del camino la barra daría saltos raros.
   const base = {
-    paises: 1, categorias: 2, casos: 3, etapa: 4, "caso-datos": 4,
+    paises: 1, categorias: 2, "caso-datos": 4,
+    casos: etapaVaPrimero() ? 4 : 3,
+    etapa: etapaVaPrimero() ? 3 : 4,
     resumen: 5, fecha: 6, datos: 6, pago: 6
   };
   const totalPasos = PREGUNTA_SERVICIO ? 7 : 6;
@@ -149,9 +160,12 @@ function dibujarCampo(campo) {
     entrada.style.cssText = ESTILO_CAMPO;
     if (campo.tipo === "parrafo") {
       entrada.rows = 4;
-    } else if (campo.tipo === "fecha") {
+    } else if (campo.tipo === "fecha" || campo.tipo === "fecha-futura") {
       entrada.type = "date";
-      entrada.max = hoyEnSantoDomingo();
+      // Una fecha de nacimiento no puede ser futura; la de una cita en el
+      // consulado, al revés, no puede estar en el pasado.
+      if (campo.tipo === "fecha") entrada.max = hoyEnSantoDomingo();
+      else entrada.min = hoyEnSantoDomingo();
     } else {
       entrada.type = "text";
       if (campo.tipo === "numero-caso") {
@@ -190,6 +204,14 @@ function leerCampo(campo) {
     if (!valor) return { ok: false, mensaje: "Falta la fecha de nacimiento." };
     if (valor > hoyEnSantoDomingo()) {
       return { ok: false, mensaje: "Esa fecha de nacimiento está en el futuro." };
+    }
+    return { ok: true, valor };
+  }
+
+  if (campo.tipo === "fecha-futura") {
+    if (!valor) return { ok: false, mensaje: "Falta la fecha de tu cita." };
+    if (valor < hoyEnSantoDomingo()) {
+      return { ok: false, mensaje: "Esa fecha ya pasó. Revisa el día de tu cita." };
     }
     return { ok: true, valor };
   }
@@ -312,7 +334,10 @@ const render = {
       boton.onclick = () => {
         estado.categoria = cat;
         estado.caso = null;
-        pantalla("casos");
+        estado.etapa = null;
+        estado.datosCaso = {};
+        estado.grupoActual = 0;
+        pantalla(etapaVaPrimero() ? "etapa" : "casos");
       };
       lista.appendChild(boton);
     });
@@ -335,10 +360,15 @@ const render = {
       `;
       boton.onclick = () => {
         estado.caso = caso;
-        estado.etapa = null;
-        estado.datosCaso = {};
-        estado.grupoActual = 0;
-        pantalla("etapa");
+        if (etapaVaPrimero()) {
+          // La etapa ya se eligió antes, con sus datos: no hay que borrarla.
+          pantalla(pantallaTrasEtapaYCaso());
+        } else {
+          estado.etapa = null;
+          estado.datosCaso = {};
+          estado.grupoActual = 0;
+          pantalla("etapa");
+        }
       };
       lista.appendChild(boton);
     });
@@ -363,7 +393,7 @@ const render = {
         estado.etapa = etapa;
         estado.datosCaso = {};
         estado.grupoActual = 0;
-        pantalla(etapa.grupos.length ? "caso-datos" : "resumen");
+        pantalla(etapaVaPrimero() ? "casos" : pantallaTrasEtapaYCaso());
       };
       lista.appendChild(boton);
     });
@@ -471,12 +501,28 @@ const render = {
     const lista = document.getElementById("lista-fechas");
     try {
       const disponibilidad = await obtenerDisponibilidad();
-      if (!disponibilidad.dias || disponibilidad.dias.length === 0) {
+      const todos = disponibilidad.dias || [];
+      // Si el cliente ya tiene fecha en el consulado, prepararlo DESPUÉS no
+      // sirve de nada: esos días ni se le enseñan, para que no pague por algo
+      // que llega tarde.
+      const tope = estado.datosCaso?.fecha_cita ?? null;
+      // Estrictamente ANTES, no el mismo día: solo guardamos la fecha de la
+      // cita en el consulado, no la hora, así que una consulta ese mismo día
+      // podría caer después de la entrevista y llegar tarde igual.
+      const dias = tope ? todos.filter((d) => d.fecha < tope) : todos;
+
+      if (todos.length === 0) {
         lista.innerHTML = `<p class="subtitulo">No hay horarios libres por ahora. Escríbenos y te avisamos apenas se abra un espacio.</p>`;
         return;
       }
+      if (dias.length === 0) {
+        // Sin "el" delante: nombreDelDia puede devolver "Hoy" o "Mañana", y
+        // "es el Mañana" queda mal escrito.
+        lista.innerHTML = `<p class="subtitulo">Tu cita en el consulado es ${nombreDelDia(tope)} y no nos queda ningún horario libre antes de esa fecha. Escríbenos: buscamos cómo atenderte a tiempo.</p>`;
+        return;
+      }
       lista.innerHTML = "";
-      disponibilidad.dias.forEach((dia) => {
+      dias.forEach((dia) => {
         const bloque = document.createElement("div");
         bloque.className = "resumen-caja";
         bloque.style.marginBottom = "12px";

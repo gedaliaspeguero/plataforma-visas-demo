@@ -145,6 +145,30 @@ const ETAPAS_RESIDENCIA = [
         ]
       }
     ]
+  },
+  {
+    id: "cita-programada",
+    nombre: "Ya tengo cita de residencia",
+    detalle: "Tu entrevista en el consulado ya tiene fecha.",
+    grupos: [
+      {
+        titulo: "Las personas del caso",
+        campos: [
+          { id: "nombre_peticionario", etiqueta: "Nombre completo del peticionario", tipo: "texto" },
+          { id: "nombre_beneficiario", etiqueta: "Nombre completo del beneficiario", tipo: "texto" }
+        ]
+      },
+      {
+        titulo: "Tu cita en el consulado",
+        campos: [
+          { id: "numero_caso", etiqueta: "Número de caso", tipo: "numero-caso", acepta: ["SDO"] },
+          {
+            id: "fecha_cita", etiqueta: "¿Qué día es tu cita?", tipo: "fecha-futura",
+            ayuda: "Así tu asesor sabe cuánto tiempo hay para prepararte."
+          }
+        ]
+      }
+    ]
   }
 ];
 
@@ -213,9 +237,11 @@ const CATALOGO_DEFAULT = [
         nombre: "Visa de no inmigrante",
         resumen: "Viajes temporales: turismo, estudio, trabajo religioso, arte o para casarte",
         casos: [
-          { id: "b2-turismo", nombre: "Turismo o visita familiar", resumen: "Para pasear o visitar a tu familia en Estados Unidos por un tiempo corto.", precios: { orientacion: null, proceso: null }, visible: true, orden: 1 },
+          // B-1 y B-2 se solicitan juntas en una sola aplicación, así que
+          // separarlas solo obligaba al cliente a adivinar cuál le tocaba.
+          // El viaje por tratamiento médico también es una B-2 y entra aquí.
+          { id: "b1-b2", nombre: "Visa B1/B2 — Turismo, comercio o negocio", resumen: "Pasear, visitar a tu familia, ir a reuniones o negocios, o viajar por tratamiento médico.", precios: { orientacion: null, proceso: null }, visible: true, orden: 1 },
           { id: "renovar-visa", nombre: "Renovar mi visa", resumen: "Tu visa está por vencer o ya venció y quieres renovarla.", precios: { orientacion: null, proceso: null }, visible: true, orden: 2 },
-          { id: "b1-negocios", nombre: "Viaje de negocios", resumen: "Para reuniones, conferencias o trámites de trabajo sin ser empleado allá.", precios: { orientacion: null, proceso: null }, visible: true, orden: 3 },
           { id: "f1-estudiante", nombre: "Estudiante", resumen: "Para estudiar en una universidad, colegio o instituto en Estados Unidos.", precios: { orientacion: null, proceso: null }, visible: true, orden: 4 },
           { id: "r1-religioso", nombre: "Trabajo religioso", resumen: "Para trabajar temporalmente en una iglesia u organización religiosa.", precios: { orientacion: null, proceso: null }, visible: true, orden: 5 },
           { id: "o1-artista", nombre: "Artista o talento excepcional", resumen: "Para artistas, deportistas o profesionales con logros reconocidos.", precios: { orientacion: null, proceso: null }, visible: true, orden: 6 },
@@ -229,6 +255,10 @@ const CATALOGO_DEFAULT = [
         // Residencia distingue la etapa exacta del proceso, no solo si empieza
         // o continúa: cada etapa se identifica con números de caso distintos.
         etapas: "residencia",
+        // Y aquí la etapa se pregunta ANTES que el caso: quien ya va por los
+        // 6 pasos o ya tiene su cita no llega pensando "quién me pidió", sino
+        // "en qué punto estoy". En el resto de categorías es al revés.
+        etapaPrimero: true,
         casos: [
           { id: "peticion-esposo", nombre: "Te pidió tu esposo o esposa", resumen: "Petición familiar de tu cónyuge, ciudadano o residente.", precios: { orientacion: null, proceso: null }, visible: true, orden: 1 },
           { id: "peticion-padres", nombre: "Te pidió tu mamá o papá", resumen: "Petición de un padre o madre ciudadano americano.", precios: { orientacion: null, proceso: null }, visible: true, orden: 2 },
@@ -248,12 +278,13 @@ const CATALOGO_DEFAULT = [
         ]
       },
       {
-        id: "medico-emergencia",
-        nombre: "Médico y emergencia",
-        resumen: "Tratamiento médico o una cita urgente",
+        // Va aparte de los demás trámites a propósito: aquí la visa ya no es
+        // el problema, lo urgente es adelantar la fecha de la cita.
+        id: "citas-urgentes",
+        nombre: "Citas urgentes",
+        resumen: "Cuando no puedes esperar el tiempo normal de espera",
         casos: [
-          { id: "visa-medica", nombre: "Viaje por tratamiento médico", resumen: "Para recibir tratamiento médico en Estados Unidos.", precios: { orientacion: null, proceso: null }, visible: true, orden: 1 },
-          { id: "cita-emergencia", nombre: "Necesito una cita urgente", resumen: "Tu situación no puede esperar el tiempo normal de espera.", precios: { orientacion: null, proceso: null }, visible: true, orden: 2 }
+          { id: "cita-emergencia", nombre: "Necesito una cita urgente", resumen: "Tu situación no puede esperar la fecha que te dieron.", precios: { orientacion: null, proceso: null }, visible: true, orden: 1 }
         ]
       },
       {
@@ -335,6 +366,14 @@ function leerCatalogoGuardado(clave) {
 // vieja: se parte del de fábrica y solo se rescata lo que el admin editó
 // (precios, visibilidad y orden), buscando cada caso por su id. Así un caso
 // eliminado desaparece y uno nuevo aparece, sin perder los precios puestos.
+// Casos que cambiaron de id. Sin esto, al renombrar o fusionar un caso se
+// perderían los precios que ya estuvieran configurados para el id viejo, y la
+// web quedaría cobrando "por confirmar" sin que nadie se diera cuenta.
+// El orden importa: gana el primero que tenga precio.
+const IDS_ANTERIORES = {
+  "b1-b2": ["b2-turismo", "b1-negocios", "visa-medica"]
+};
+
 function fusionarConDefault(guardado) {
   const porId = new Map();
   guardado.forEach((pais) =>
@@ -343,38 +382,57 @@ function fusionarConDefault(guardado) {
     )
   );
 
+  // Todos los registros guardados que corresponden a este caso: el suyo y los
+  // de sus ids anteriores, en orden de prioridad.
+  const candidatos = (id) =>
+    [id, ...(IDS_ANTERIORES[id] ?? [])].map((clave) => porId.get(clave)).filter(Boolean);
+
+  // Cada precio se busca por separado: al fusionar varios casos en uno, la
+  // orientación puede venir de uno y el proceso de otro, y quedarse con un
+  // solo registro perdería el precio del otro.
+  const precioRescatado = (id, servicioId) => {
+    for (const previo of candidatos(id)) {
+      const precio = precioDelCaso(previo, servicioId);
+      if (precio !== null) return precio;
+    }
+    return null;
+  };
+
   const base = JSON.parse(JSON.stringify(CATALOGO_DEFAULT));
   base.forEach((pais) =>
     pais.categorias.forEach((cat) =>
       cat.casos.forEach((caso) => {
-        const viejo = porId.get(caso.id);
-        if (!viejo) return;
+        const previo = candidatos(caso.id)[0];
+        if (!previo) return;
         caso.precios = {
-          orientacion: precioDelCaso(viejo, "orientacion"),
-          proceso: precioDelCaso(viejo, "proceso")
+          orientacion: precioRescatado(caso.id, "orientacion"),
+          proceso: precioRescatado(caso.id, "proceso")
         };
-        if (typeof viejo.visible === "boolean") caso.visible = viejo.visible;
-        if (typeof viejo.orden === "number") caso.orden = viejo.orden;
+        if (typeof previo.visible === "boolean") caso.visible = previo.visible;
+        if (typeof previo.orden === "number") caso.orden = previo.orden;
       })
     )
   );
   return base;
 }
 
+// Se fusiona SIEMPRE con el catálogo de fábrica, no solo al cambiar de
+// versión: el editor de admin solo toca precios, visibilidad y orden, así que
+// nada de lo que él edita se pierde, y a cambio cualquier caso que se agregue,
+// se quite o se renombre llega solo. Sin esto habría que acordarse de subir la
+// versión cada vez que cambia el catálogo, y olvidarlo deja catálogos viejos
+// congelados en el navegador de quien ya lo había abierto.
 function cargarCatalogo() {
-  const v3 = leerCatalogoGuardado(CATALOGO_STORAGE_KEY);
-  if (v3) return v3;
-
-  const anterior =
+  const guardado =
+    leerCatalogoGuardado(CATALOGO_STORAGE_KEY) ||
     leerCatalogoGuardado(CATALOGO_STORAGE_KEY_V2) ||
     leerCatalogoGuardado(CATALOGO_STORAGE_KEY_V1);
-  if (anterior) {
-    const migrado = fusionarConDefault(anterior);
-    guardarCatalogo(migrado);
-    return migrado;
-  }
 
-  return JSON.parse(JSON.stringify(CATALOGO_DEFAULT));
+  if (!guardado) return JSON.parse(JSON.stringify(CATALOGO_DEFAULT));
+
+  const fusionado = fusionarConDefault(guardado);
+  guardarCatalogo(fusionado);
+  return fusionado;
 }
 
 function guardarCatalogo(catalogo) {
