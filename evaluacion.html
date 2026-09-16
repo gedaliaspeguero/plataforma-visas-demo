@@ -3,7 +3,14 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1" />
-  <title>Evalúa tu perfil de visa — 2 minutos, gratis</title>
+  <title>Evaluación inicial para visa B1/B2 | Tu Viaje Legal 360</title>
+  <meta name="description" content="Organiza la información inicial de tu perfil para una visa B1/B2 de Estados Unidos y descubre qué conviene revisar con un asesor." />
+  <meta property="og:title" content="Evaluación inicial para visa B1/B2" />
+  <meta property="og:description" content="Responde 12 preguntas y descubre qué información conviene revisar antes de avanzar." />
+  <meta property="og:type" content="website" />
+  <meta property="og:url" content="https://tuviajelegal.com/evaluacion.html" />
+  <meta property="og:image" content="https://tuviajelegal.com/assets/hero-consulta.jpg" />
+  <meta name="twitter:card" content="summary_large_image" />
   <link rel="stylesheet" href="estilo-marca.css" />
 </head>
 <body>
@@ -15,8 +22,10 @@
 
   <div class="quiz-cuerpo">
     <div class="progreso-quiz" id="progressHeader" hidden>
-      <button class="btn-atras" id="backBtn">‹ Atrás</button>
-      <div class="progreso-pista"><div class="progreso-relleno" id="progressFill"></div></div>
+      <button class="btn-atras" id="backBtn" aria-label="Volver a la pregunta anterior">‹ Atrás</button>
+      <div class="progreso-pista" id="progressTrack" role="progressbar" aria-label="Progreso de la evaluación" aria-valuemin="1">
+        <div class="progreso-relleno" id="progressFill"></div>
+      </div>
     </div>
     <div id="screenStage"></div>
   </div>

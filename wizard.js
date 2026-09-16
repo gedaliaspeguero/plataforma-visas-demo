@@ -1,6 +1,15 @@
-// Si el cliente viene del quiz de evaluación, su resultado llega en la URL
-// y viaja pegado a la cita para que la consultora lo vea antes de aceptar.
+// Si el cliente viene del quiz de evaluación, su resultado se recupera de la
+// sesión y viaja pegado a la cita para que la consultora lo vea al recibirla.
 const parametrosEntrada = new URLSearchParams(window.location.search);
+const vieneDeEvaluacion = parametrosEntrada.get("origen") === "evaluacion";
+
+function leerDatoTemporal(clave) {
+  try {
+    return sessionStorage.getItem(clave) || "";
+  } catch (e) {
+    return "";
+  }
+}
 
 // El servicio llega elegido desde la landing (?servicio=). Si alguien entra
 // directo a agendar.html sin elegirlo, se le pregunta como primera pantalla:
@@ -10,6 +19,7 @@ const servicioDeLaUrl = servicioPorId(parametrosEntrada.get("servicio"));
 const estado = {
   catalogo: cargarCatalogo(),
   servicio: servicioDeLaUrl,
+  servicioSolicitado: servicioDeLaUrl,
   pais: null,
   categoria: null,
   caso: null,
@@ -20,17 +30,38 @@ const estado = {
   grupoActual: 0,
   fecha: null,
   hora: null,
-  nombre: (parametrosEntrada.get("nombre") || "").slice(0, 120) || null,
+  nombre: (parametrosEntrada.get("nombre") || (vieneDeEvaluacion ? leerDatoTemporal("nombre_quiz_pendiente") : "")).slice(0, 120) || null,
   email: null,
   token: null,
-  perfilQuiz: (parametrosEntrada.get("perfil") || "").slice(0, 200) || null
+  perfilQuiz: (parametrosEntrada.get("perfil") || (vieneDeEvaluacion ? leerDatoTemporal("perfil_quiz_pendiente") : "")).slice(0, 200) || null
 };
 
 // Cuando hay que preguntar el servicio, el wizard tiene un paso más.
 const PREGUNTA_SERVICIO = servicioDeLaUrl === null;
 
 function precioActual() {
-  return precioDelCaso(estado.caso, estado.servicio.id);
+  return precioDelCaso(estado.caso, estado.servicio.id, estado.etapa?.tarifaEspecial);
+}
+
+function reglaServicioActual() {
+  return [estado.etapa, estado.caso, estado.categoria].find(
+    (nivel) => nivel && nivel.servicioObligatorio
+  ) || null;
+}
+
+function aplicarReglaServicio() {
+  const regla = reglaServicioActual();
+  estado.servicio = regla
+    ? servicioPorId(regla.servicioObligatorio)
+    : estado.servicioSolicitado;
+}
+
+function mensajeServicioActual() {
+  return reglaServicioActual()?.mensajeServicio || "";
+}
+
+function avisoPrevioPagoActual() {
+  return estado.caso?.avisoPrevioPago || "";
 }
 
 // En residencia la etapa se pregunta antes que el caso; en el resto, después.
@@ -40,6 +71,25 @@ function etapaVaPrimero() {
 
 function pantallaTrasEtapaYCaso() {
   return estado.etapa.grupos.length ? "caso-datos" : "resumen";
+}
+
+function esPeticionFamiliarNueva(caso) {
+  return caso && caso.id === "peticion-familiar-nueva";
+}
+
+function casosParaEtapaActual() {
+  const casos = opcionesActivas(estado.categoria.casos);
+  if (estado.categoria.id !== "residencia") return casos;
+  if (estado.etapa?.id === "iniciar-peticion") return casos.filter(esPeticionFamiliarNueva);
+  return casos.filter((caso) => !esPeticionFamiliarNueva(caso));
+}
+
+function etapaTieneCasoDisponible(etapa) {
+  if (!etapaVaPrimero()) return true;
+  const casos = opcionesActivas(estado.categoria.casos);
+  return etapa.id === "iniciar-peticion"
+    ? casos.some(esPeticionFamiliarNueva)
+    : casos.some((caso) => !esPeticionFamiliarNueva(caso));
 }
 
 const historial = [];
@@ -72,9 +122,15 @@ function pantalla(nombre, empujarHistorial = true) {
   if (pasoActual) {
     const progreso = document.createElement("div");
     progreso.className = "progreso";
+    progreso.setAttribute("role", "progressbar");
+    progreso.setAttribute("aria-label", "Progreso de la reserva");
+    progreso.setAttribute("aria-valuemin", "1");
+    progreso.setAttribute("aria-valuemax", String(totalPasos));
+    progreso.setAttribute("aria-valuenow", String(pasoActual));
     for (let i = 1; i <= totalPasos; i++) {
       const barra = document.createElement("div");
       barra.className = "progreso-paso" + (i <= pasoActual ? " activo" : "");
+      barra.setAttribute("aria-hidden", "true");
       progreso.appendChild(barra);
     }
     raiz.appendChild(progreso);
@@ -94,6 +150,14 @@ function pantalla(nombre, empujarHistorial = true) {
   raiz.appendChild(contenido);
 
   render[nombre]();
+  requestAnimationFrame(() => {
+    window.scrollTo(0, 0);
+    const titulo = raiz.querySelector("h1");
+    if (titulo) {
+      titulo.tabIndex = -1;
+      titulo.focus({ preventScroll: true });
+    }
+  });
 }
 
 function irAtras() {
@@ -177,6 +241,7 @@ function dibujarCampo(campo) {
     // Se asigna por propiedad, nunca por HTML: el valor puede venir de algo
     // que el usuario escribió y no debe interpretarse como markup.
     entrada.value = estado.datosCaso[campo.id] ?? "";
+    if (campo.opcional) etiqueta.append(" (opcional)");
     caja.appendChild(entrada);
   }
 
@@ -217,6 +282,7 @@ function leerCampo(campo) {
   }
 
   if (campo.tipo === "numero-caso") {
+    if (!valor && campo.opcional) return { ok: true, valor: "" };
     const revisado = validarNumeroCaso(valor, campo.acepta);
     if (!revisado.ok) {
       const formatos = campo.acepta.map(descripcionFormato).join(", o ");
@@ -288,6 +354,7 @@ const render = {
       `;
       boton.onclick = () => {
         estado.servicio = servicio;
+        estado.servicioSolicitado = servicio;
         pantalla("paises");
       };
       lista.appendChild(boton);
@@ -337,6 +404,19 @@ const render = {
         estado.etapa = null;
         estado.datosCaso = {};
         estado.grupoActual = 0;
+        const casosVisibles = opcionesActivas(cat.casos);
+        if (cat.casoDirecto && casosVisibles.length === 1) {
+          estado.caso = casosVisibles[0];
+          aplicarReglaServicio();
+          if (cat.etapaDirecta) {
+            estado.etapa = etapasDeCategoria(cat)[0];
+            pantalla(pantallaTrasEtapaYCaso());
+            return;
+          }
+          pantalla("etapa");
+          return;
+        }
+        aplicarReglaServicio();
         pantalla(etapaVaPrimero() ? "etapa" : "casos");
       };
       lista.appendChild(boton);
@@ -351,7 +431,7 @@ const render = {
       <div class="opciones" id="lista-casos"></div>
     `;
     const lista = document.getElementById("lista-casos");
-    opcionesActivas(estado.categoria.casos).forEach((caso) => {
+    casosParaEtapaActual().forEach((caso) => {
       const boton = document.createElement("button");
       boton.className = "opcion";
       boton.innerHTML = `
@@ -362,11 +442,13 @@ const render = {
         estado.caso = caso;
         if (etapaVaPrimero()) {
           // La etapa ya se eligió antes, con sus datos: no hay que borrarla.
+          aplicarReglaServicio();
           pantalla(pantallaTrasEtapaYCaso());
         } else {
           estado.etapa = null;
           estado.datosCaso = {};
           estado.grupoActual = 0;
+          aplicarReglaServicio();
           pantalla("etapa");
         }
       };
@@ -382,7 +464,7 @@ const render = {
       <div class="opciones" id="lista-etapas"></div>
     `;
     const lista = document.getElementById("lista-etapas");
-    etapasDeCategoria(estado.categoria).forEach((etapa) => {
+    etapasDeCategoria(estado.categoria).filter(etapaTieneCasoDisponible).forEach((etapa) => {
       const boton = document.createElement("button");
       boton.className = "opcion";
       boton.innerHTML = `
@@ -393,6 +475,16 @@ const render = {
         estado.etapa = etapa;
         estado.datosCaso = {};
         estado.grupoActual = 0;
+        aplicarReglaServicio();
+        if (etapaVaPrimero() && etapa.id === "iniciar-peticion") {
+          estado.caso = casosParaEtapaActual()[0] || null;
+          if (!estado.caso) {
+            pantalla("etapa", false);
+            return;
+          }
+          pantalla(pantallaTrasEtapaYCaso());
+          return;
+        }
         pantalla(etapaVaPrimero() ? "casos" : pantallaTrasEtapaYCaso());
       };
       lista.appendChild(boton);
@@ -408,7 +500,7 @@ const render = {
       <h1>${escapeHtml(grupo.titulo)}</h1>
       <p class="subtitulo">${escapeHtml(estado.etapa.nombre)}</p>
       <div class="opciones" id="lista-campos" style="margin-bottom:20px;"></div>
-      <p class="subtitulo" id="error-campos" style="color:var(--acento-oscuro); display:none;"></p>
+      <p class="subtitulo" id="error-campos" role="alert" aria-live="polite" style="color:var(--acento-oscuro); display:none;"></p>
       <button class="boton-primario" id="btn-continuar">Continuar</button>
     `;
 
@@ -440,6 +532,8 @@ const render = {
     const c = document.getElementById("contenido");
     const precio = precioActual();
     const precioConocido = precio !== null && precio !== undefined;
+    const mensajeServicio = mensajeServicioActual();
+    const avisoPrevioPago = avisoPrevioPagoActual();
     c.innerHTML = `
       <h1>Así será tu proceso</h1>
       <p class="subtitulo">Revisa que todo esté correcto antes de agendar.</p>
@@ -472,6 +566,8 @@ const render = {
             : "Un asesor te confirmará el precio exacto"}</div>
         </div>
       </div>
+      ${mensajeServicio ? `<p class="aviso-precio">${escapeHtml(mensajeServicio)}</p>` : ""}
+      ${avisoPrevioPago ? `<p class="aviso-precio">${escapeHtml(avisoPrevioPago)}</p>` : ""}
       <p class="subtitulo" style="margin-bottom:8px; font-weight:600; color:var(--ink);">Estos son los pasos:</p>
       <ol class="pasos-lista">
         ${estado.servicio.pasos.map((p) => `<li>${p}</li>`).join("")}
@@ -494,7 +590,7 @@ const render = {
 
     c.innerHTML = `
       <h1>¿Qué día te queda bien?</h1>
-      <p class="subtitulo">Estos son los horarios que tenemos libres.</p>
+      <p class="subtitulo">Estos son los horarios libres para tu consulta con un asesor. Todos están en hora de Santo Domingo (UTC-4).</p>
       <div id="lista-fechas"><p class="subtitulo">Buscando horarios disponibles…</p></div>
     `;
 
@@ -535,7 +631,7 @@ const render = {
           const boton = document.createElement("button");
           boton.className = "opcion";
           boton.style.padding = "10px 14px";
-          boton.innerHTML = `<span class="opcion-titulo">${hora}</span>`;
+          boton.innerHTML = `<span class="opcion-titulo">${formatearHora12(hora)}</span>`;
           boton.onclick = () => {
             estado.fecha = dia.fecha;
             estado.hora = hora;
@@ -547,7 +643,11 @@ const render = {
       });
     } catch (e) {
       console.error(e);
-      lista.innerHTML = `<p class="subtitulo">No pudimos cargar los horarios. Intenta de nuevo en un momento.</p>`;
+      lista.innerHTML = `
+        <p class="subtitulo">No pudimos cargar los horarios. Revisa tu conexión e intenta de nuevo.</p>
+        <button class="boton-secundario" id="btn-reintentar-horarios">Volver a intentar</button>
+      `;
+      document.getElementById("btn-reintentar-horarios").onclick = () => render.fecha();
     }
   },
 
@@ -559,12 +659,14 @@ const render = {
         ? "Esta es una demostración: los datos no se enviarán ni se guardarán."
         : "Aquí te llegará la confirmación y todos los avisos."}</p>
       <div class="opciones" style="margin-bottom:20px;">
-        <input id="input-nombre" type="text" placeholder="Nombre completo"
+        <label class="campo-etiqueta" for="input-nombre">Nombre completo</label>
+        <input id="input-nombre" type="text" placeholder="Escribe tu nombre" autocomplete="name" aria-describedby="error-datos"
           style="padding:16px 18px; border:1.5px solid var(--gris-claro); border-radius:var(--radio); font-size:16px; font-family:inherit;" />
-        <input id="input-email" type="email" placeholder="Correo electrónico"
+        <label class="campo-etiqueta" for="input-email">Correo electrónico</label>
+        <input id="input-email" type="email" placeholder="nombre@correo.com" autocomplete="email" inputmode="email" aria-describedby="error-datos"
           style="padding:16px 18px; border:1.5px solid var(--gris-claro); border-radius:var(--radio); font-size:16px; font-family:inherit;" />
       </div>
-      <p class="subtitulo" id="error-datos" style="color:var(--acento-oscuro); display:none;"></p>
+      <p class="subtitulo" id="error-datos" role="alert" aria-live="polite" style="color:var(--acento-oscuro); display:none;"></p>
       <button class="boton-primario" id="btn-continuar">Continuar</button>
     `;
     // Los valores se asignan por propiedad (no por HTML) porque el nombre
@@ -579,6 +681,7 @@ const render = {
       if (!nombre || !correoValido) {
         error.textContent = !nombre ? "Escribe tu nombre completo." : "Escribe un correo válido.";
         error.style.display = "block";
+        document.getElementById(!nombre ? "input-nombre" : "input-email").focus();
         return;
       }
       estado.nombre = nombre;
@@ -591,6 +694,8 @@ const render = {
     const c = document.getElementById("contenido");
     const precio = precioActual();
     const precioConocido = precio !== null && precio !== undefined;
+    const mensajeServicio = mensajeServicioActual();
+    const avisoPrevioPago = avisoPrevioPagoActual();
     c.innerHTML = `
       <h1>${MODO_DEMO_PUBLICA ? "Revisa tu cita de prueba" : `Confirma y paga tu ${estado.servicio.nombreCorto}`}</h1>
       <div class="resumen-caja">
@@ -600,7 +705,19 @@ const render = {
         </div>
         <div class="resumen-fila">
           <span class="resumen-etiqueta">Cita</span>
-          <span class="resumen-valor">${nombreDelDia(estado.fecha)} · ${estado.hora}</span>
+          <span class="resumen-valor">${formatearFechaCompleta(estado.fecha)} · ${formatearHora12(estado.hora)}</span>
+        </div>
+        <div class="resumen-fila">
+          <span class="resumen-etiqueta">Horario</span>
+          <span class="resumen-valor">Santo Domingo (UTC-4)</span>
+        </div>
+        <div class="resumen-fila">
+          <span class="resumen-etiqueta">Trámite</span>
+          <span class="resumen-valor">${escapeHtml(estado.caso.nombre)}</span>
+        </div>
+        <div class="resumen-fila">
+          <span class="resumen-etiqueta">Etapa</span>
+          <span class="resumen-valor">${escapeHtml(estado.etapa.nombre)}</span>
         </div>
         <div class="resumen-fila">
           <span class="resumen-etiqueta">Nombre</span>
@@ -617,10 +734,12 @@ const render = {
             : "Si no confirmamos tu cita en 24 horas, te devolvemos el 100%"}</div>
         </div>
       </div>
+      ${mensajeServicio ? `<p class="aviso-precio">${escapeHtml(mensajeServicio)}</p>` : ""}
+      ${avisoPrevioPago ? `<p class="aviso-precio">${escapeHtml(avisoPrevioPago)}</p>` : ""}
       <p class="aviso-precio">${MODO_DEMO_PUBLICA
         ? "Demo pública: no se cobra, no se crea una cita y no se envían datos"
         : "Pago de prueba — todavía no se cobra dinero real"}</p>
-      <p class="subtitulo" id="error-pago" style="color:var(--coral-dark); display:none; margin-top:16px;"></p>
+      <p class="subtitulo" id="error-pago" role="alert" aria-live="polite" style="color:var(--acento-oscuro); display:none; margin-top:16px;"></p>
       <button class="boton-primario" id="btn-pagar" style="margin-top:20px;">${MODO_DEMO_PUBLICA
         ? "Completar demostración"
         : "Pagar y confirmar mi cita"}</button>
@@ -696,7 +815,7 @@ const render = {
     }
     c.innerHTML = `
       <h1>¡Listo, ${escapeHtml(estado.nombre)}!</h1>
-      <p class="subtitulo">Tu cita para <strong>${escapeHtml(estado.caso.nombre)}</strong> el ${nombreDelDia(estado.fecha)} a las ${estado.hora} quedó registrada.</p>
+      <p class="subtitulo">Tu consulta para <strong>${escapeHtml(estado.caso.nombre)}</strong> el ${formatearFechaCompleta(estado.fecha)} a las ${formatearHora12(estado.hora)}, hora de Santo Domingo (UTC-4), quedó registrada.</p>
       <div class="resumen-caja">
         <div class="resumen-fila">
           <span class="resumen-etiqueta">Qué sigue ahora</span>
@@ -713,4 +832,27 @@ const render = {
   }
 };
 
-pantalla(PREGUNTA_SERVICIO ? "servicio" : "paises");
+function formatearFechaCompleta(fechaISO) {
+  const [anio, mes, dia] = fechaISO.split("-").map(Number);
+  return new Intl.DateTimeFormat("es-DO", {
+    weekday: "long",
+    day: "numeric",
+    month: "long",
+    year: "numeric"
+  }).format(new Date(anio, mes - 1, dia));
+}
+
+function prepararEntradaDesdeEvaluacion() {
+  if (parametrosEntrada.get("origen") !== "evaluacion") return null;
+  const pais = estado.catalogo.find((item) => item.id === parametrosEntrada.get("pais"));
+  const categoria = pais?.categorias.find((item) => item.id === parametrosEntrada.get("categoria"));
+  const caso = categoria?.casos.find((item) => item.id === parametrosEntrada.get("caso"));
+  if (!pais || !categoria || !caso || caso.visible === false || !estado.servicio) return null;
+  estado.pais = pais;
+  estado.categoria = categoria;
+  estado.caso = caso;
+  aplicarReglaServicio();
+  return "etapa";
+}
+
+pantalla(prepararEntradaDesdeEvaluacion() || (PREGUNTA_SERVICIO ? "servicio" : "paises"));

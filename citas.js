@@ -188,3 +188,18 @@ function nombreDelDia(fechaISO) {
   if (fecha.getTime() === manana.getTime()) return "Mañana";
   return `${dias[fecha.getDay()]} ${dia}/${mes}`;
 }
+
+function formatearHora12(hora) {
+  const horaOriginal = String(hora || "");
+  const coincidencia = /^(\d{1,2}):(\d{2})/.exec(horaOriginal);
+  if (!coincidencia) return horaOriginal;
+
+  const horaNumerica = Number(coincidencia[1]);
+  const minutos = coincidencia[2];
+  if (horaNumerica > 23 || Number(minutos) > 59) return horaOriginal;
+  const periodo = horaNumerica >= 12 ? "PM" : "AM";
+  const horaVisible = horaNumerica % 12 || 12;
+  return minutos === "00"
+    ? `${horaVisible} ${periodo}`
+    : `${horaVisible}:${minutos} ${periodo}`;
+}

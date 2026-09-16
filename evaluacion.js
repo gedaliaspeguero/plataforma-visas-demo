@@ -1,5 +1,5 @@
 // evaluacion.js — el quiz integrado en la plataforma. La matriz de puntos vive
-// en scoring.js (copiado intacto de visacheck-rd — es el corazón, no se toca).
+// en scoring.js y se usa solo para ordenar las áreas que conviene revisar.
 // Diferencia clave con el quiz original: el CTA principal del resultado ya no
 // es WhatsApp sino agendar la consulta, y el resultado viaja pegado a la cita.
 
@@ -8,10 +8,10 @@ const TEXTOS = {
   BRAND_NAME: "Tu Viaje Legal 360",
 
   INTRO: {
-    eyebrow: "Evaluación de perfil — gratis",
-    headline: "¿Qué tan preparado está tu perfil para tu visa?",
-    stat: "El 43% de los dominicanos que solicitan visa americana son rechazados. La mayoría por errores evitables.",
-    sub: "12 preguntas rápidas sobre tus vínculos económicos, laborales, familiares y tu historial migratorio. Sin compromiso.",
+    eyebrow: "Visa B1/B2 para Estados Unidos — gratis",
+    headline: "Descubre qué conviene revisar antes de solicitar tu visa.",
+    stat: "Esta evaluación organiza la información inicial de tu perfil. La decisión final siempre corresponde al consulado.",
+    sub: "12 preguntas rápidas para identificar qué información tienes clara y qué conviene revisar con un asesor. Sin compromiso.",
     ctaStart: "Evaluar mi perfil gratis — 2 minutos",
   },
 
@@ -24,33 +24,28 @@ const TEXTOS = {
   },
 
   RESULT: {
-    probabilityLabel: "Probabilidad estimada de aprobación",
-    probabilityNote: "Estimación basada en los factores de tu perfil — no es una predicción oficial ni garantiza la decisión consular.",
     pillarTierNote: {
-      fuerte: "Uno de tus puntos más fuertes.",
-      medio: "Vas bien, pero hay espacio para reforzarlo.",
-      riesgo: "Área que conviene trabajar antes de aplicar.",
+      fuerte: "La información que diste en esta área está bastante clara.",
+      medio: "Hay información de esta área que conviene revisar.",
+      riesgo: "Esta área merece una revisión cuidadosa antes de avanzar.",
     },
     bandLabels: {
-      fuerte: "Perfil fuerte",
-      medio: "Perfil medio",
-      riesgo: "Perfil en riesgo",
+      fuerte: "Tienes una buena base para orientarte",
+      medio: "Hay varios puntos que conviene aclarar",
+      riesgo: "Conviene revisar tu situación antes de avanzar",
     },
     bandTaglines: {
-      fuerte: "Tu perfil muestra vínculos sólidos. Un experto puede ayudarte a presentarlos bien en tu entrevista.",
-      medio: "Tienes vínculos, pero hay espacio para reforzar tu caso antes de aplicar. Justo para eso es la consulta.",
-      riesgo: "Detectamos varios puntos débiles. Antes de gastar en la solicitud, conviene que un experto revise tu caso.",
+      fuerte: "Tus respuestas permiten identificar un punto de partida. Un asesor puede confirmar qué aplica realmente a tu caso.",
+      medio: "Tus respuestas dejan algunas áreas abiertas. Revisarlas antes de solicitar puede ayudarte a tomar mejores decisiones.",
+      riesgo: "Tus respuestas necesitan contexto profesional antes de decidir el siguiente paso o pagar tasas oficiales.",
     },
-    riskCountLabel: (n) =>
-      n === 0
-        ? "No detectamos factores de riesgo evidentes en tu perfil."
-        : `Detectamos ${n} factor${n === 1 ? "" : "es"} que podría${n === 1 ? "" : "n"} afectar tu entrevista. En tu consulta te decimos exactamente cuáles son y cómo trabajarlos.`,
+    nextStep: "Siguiente paso recomendado: revisa estas áreas con un asesor antes de tomar decisiones sobre tu solicitud.",
     ctaAgendar: "Agendar mi consulta con un experto",
     ctaWhatsapp: "Prefiero escribir por WhatsApp",
     ctaShare: "Compartir este test",
     shareText: "Hice el test de Tu Viaje Legal 360 para evaluar mi perfil de visa. Pruébalo:",
     whatsappIntro: (name, caseNumber) =>
-      `Hola, soy ${name || "un usuario"} y acabo de hacer el test de Tu Viaje Legal 360.\n\nCaso #${caseNumber}\n\nEste es mi resultado:`,
+      `Hola, soy ${name || "un usuario"} y acabo de hacer la evaluación de Tu Viaje Legal 360.\n\nReferencia #${caseNumber}\n\nEste es mi resultado:`,
   },
 
   FOOTER_DISCLAIMER:
@@ -67,7 +62,6 @@ const state = {
 };
 
 let isTransitioning = false;
-const GAUGE_RADIUS = 52;
 
 function ensureCaseNumber() {
   if (!state.caseNumber) {
@@ -77,6 +71,7 @@ function ensureCaseNumber() {
 
 const stage = document.getElementById("screenStage");
 const progressHeader = document.getElementById("progressHeader");
+const progressTrack = document.getElementById("progressTrack");
 const progressFill = document.getElementById("progressFill");
 const backBtn = document.getElementById("backBtn");
 
@@ -126,17 +121,28 @@ function render() {
   else if (state.step === "result") stage.appendChild(renderResult());
 
   window.scrollTo(0, 0);
+  requestAnimationFrame(() => {
+    const titulo = stage.querySelector("h1, h2");
+    if (titulo) {
+      titulo.tabIndex = -1;
+      titulo.focus({ preventScroll: true });
+    }
+  });
 }
 
 function updateProgressHeader() {
   if (state.step === "question") {
     progressHeader.hidden = false;
-    const pct = (state.questionIndex / state.flow.length) * 100;
+    const pct = ((state.questionIndex + 1) / (state.flow.length + 1)) * 100;
     progressFill.style.width = `${pct}%`;
+    progressTrack.setAttribute("aria-valuenow", String(state.questionIndex + 1));
+    progressTrack.setAttribute("aria-valuemax", String(state.flow.length + 1));
     backBtn.style.visibility = "visible";
   } else if (state.step === "name") {
     progressHeader.hidden = false;
     progressFill.style.width = "100%";
+    progressTrack.setAttribute("aria-valuenow", String(state.flow.length + 1));
+    progressTrack.setAttribute("aria-valuemax", String(state.flow.length + 1));
     backBtn.style.visibility = "visible";
   } else {
     progressHeader.hidden = true;
@@ -192,6 +198,8 @@ function renderQuestion() {
         ? Array.isArray(currentAnswer) && currentAnswer.includes(opt.value)
         : currentAnswer === opt.value;
     if (isSelected) card.classList.add("selected");
+    card.setAttribute("aria-label", opt.label);
+    if (q.type === "multi") card.setAttribute("aria-pressed", isSelected ? "true" : "false");
     card.innerHTML = `<span>${opt.label}</span><span class="option-check">✓</span>`;
 
     card.addEventListener("click", () => {
@@ -234,6 +242,7 @@ function handleMultiSelect(question, opt, cardEl, listEl) {
   Array.from(listEl.children).forEach((child, i) => {
     const isSel = selected.includes(question.options[i].value);
     child.classList.toggle("selected", isSel);
+    child.setAttribute("aria-pressed", isSel ? "true" : "false");
   });
 }
 
@@ -284,7 +293,8 @@ function renderNameCapture() {
   el.innerHTML = `
     <h2 class="question-text">${t.headline}</h2>
     <p class="intro-sub" style="margin-bottom:20px;">${t.sub}</p>
-    <input type="text" class="name-input" id="nameInput" placeholder="${t.placeholder}" value="${state.userName}" />
+    <label class="campo-etiqueta" for="nameInput">Tu nombre <span>(opcional)</span></label>
+    <input type="text" class="name-input" id="nameInput" placeholder="${t.placeholder}" value="${state.userName}" autocomplete="name" />
     <button class="btn-primary" id="nameContinueBtn">${t.ctaContinue}</button>
     <button class="skip-btn" id="nameSkipBtn">${t.ctaSkip}</button>
   `;
@@ -314,40 +324,23 @@ function renderResult() {
       const pillar = PILLARS[key];
       const score = result.pillarScores[key];
       const max = result.pillarMax[key];
-      const pct = Math.round((score / max) * 100);
       const tier = getPillarTier(score, max);
       return `
-        <div class="pillar-row">
-          <div class="pillar-row-label"><span>${pillar.label}</span><span>${score}/${max}</span></div>
-          <div class="pillar-bar-track"><div class="pillar-bar-fill ${tier}" data-pct="${pct}" style="width:0%"></div></div>
+        <div class="pillar-row pillar-summary ${tier}">
+          <div class="pillar-row-label"><span>${pillar.label}</span><span>${tier === "fuerte" ? "Claro" : "Por revisar"}</span></div>
           <p class="pillar-tier-note ${tier}">${t.pillarTierNote[tier]}</p>
         </div>
       `;
     })
     .join("");
 
-  const gaugeCircumference = 2 * Math.PI * GAUGE_RADIUS;
-
   el.innerHTML = `
     <p class="question-pillar">Tu resultado</p>
-    <p class="case-number">Caso #${state.caseNumber}</p>
-    <div class="gauge-wrap">
-      <svg class="gauge-svg" viewBox="0 0 120 120">
-        <circle class="gauge-track" cx="60" cy="60" r="${GAUGE_RADIUS}" />
-        <circle class="gauge-fill ${result.band}" cx="60" cy="60" r="${GAUGE_RADIUS}"
-          data-pct="${result.approvalPercentage}"
-          style="stroke-dasharray:${gaugeCircumference};stroke-dashoffset:${gaugeCircumference}" />
-      </svg>
-      <div class="gauge-center">
-        <span class="gauge-pct ${result.band}">${result.approvalPercentage}%</span>
-        <span class="gauge-pct-label">${t.probabilityLabel}</span>
-      </div>
-    </div>
-    <p class="gauge-note">${t.probabilityNote}</p>
+    <p class="case-number">Referencia de evaluación #${state.caseNumber}</p>
     <h2 class="result-band ${result.band}">${t.bandLabels[result.band]}</h2>
     <p class="result-tagline">${t.bandTaglines[result.band]}</p>
     <div class="pillars-chart">${pillarRows}</div>
-    <div class="risk-card">${t.riskCountLabel(result.flags.length)}</div>
+    <div class="risk-card">${t.nextStep}</div>
     <div class="result-actions">
       <button class="btn-primary" id="agendarBtn">${t.ctaAgendar}</button>
       <button class="btn-secundario-quiz" id="whatsappBtn">${t.ctaWhatsapp}</button>
@@ -359,19 +352,6 @@ function renderResult() {
   el.querySelector("#whatsappBtn").addEventListener("click", () => openWhatsapp(result));
   el.querySelector("#shareBtn").addEventListener("click", shareTest);
 
-  requestAnimationFrame(() => {
-    requestAnimationFrame(() => {
-      el.querySelectorAll(".pillar-bar-fill").forEach((bar) => {
-        bar.style.width = `${bar.dataset.pct}%`;
-      });
-      const gaugeFill = el.querySelector(".gauge-fill");
-      if (gaugeFill) {
-        const offset = gaugeCircumference - (gaugeCircumference * gaugeFill.dataset.pct) / 100;
-        gaugeFill.style.strokeDashoffset = offset;
-      }
-    });
-  });
-
   return el;
 }
 
@@ -379,9 +359,18 @@ function renderResult() {
 // vea el perfil del cliente antes de aceptar el caso.
 function irAAgendar(result) {
   const codigo = encodeResultForWhatsapp(result);
+  try {
+    sessionStorage.setItem("perfil_quiz_pendiente", codigo);
+    sessionStorage.setItem("nombre_quiz_pendiente", state.userName || "");
+  } catch (e) {
+    // El recorrido sigue funcionando aunque el navegador bloquee sessionStorage.
+  }
   const params = new URLSearchParams();
-  params.set("perfil", codigo);
-  if (state.userName) params.set("nombre", state.userName);
+  params.set("servicio", "orientacion");
+  params.set("pais", "usa");
+  params.set("categoria", "no-inmigrante");
+  params.set("caso", "b1-b2");
+  params.set("origen", "evaluacion");
   window.location.href = `agendar.html?${params.toString()}`;
 }
 
