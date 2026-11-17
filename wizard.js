@@ -39,6 +39,53 @@ const estado = {
 // Cuando hay que preguntar el servicio, el wizard tiene un paso más.
 const PREGUNTA_SERVICIO = servicioDeLaUrl === null;
 
+// Sitio público sin pago en línea (config.demo.js): el recorrido termina en el
+// resumen y "Agendar" abre WhatsApp con todo lo que la persona eligió, para
+// que la asesora reciba el caso completo sin tener que preguntar.
+const MODO_AGENDA_WHATSAPP = typeof AGENDA_POR_WHATSAPP !== "undefined" && AGENDA_POR_WHATSAPP === true;
+
+const PASOS_POR_WHATSAPP = [
+  "Nos envías tu caso por WhatsApp (ya va escrito)",
+  "Un asesor te confirma el precio y el horario",
+  "Pagas por transferencia y nos envías el comprobante",
+  "Tienes tu consulta con el asesor"
+];
+
+function valorLegibleDelCampo(campo, valor) {
+  if (campo.tipo === "opcion") {
+    return campo.opciones.find((op) => op.valor === valor)?.texto || valor;
+  }
+  if ((campo.tipo === "fecha" || campo.tipo === "fecha-futura") && /^\d{4}-\d{2}-\d{2}$/.test(valor)) {
+    const [anio, mes, dia] = valor.split("-");
+    return `${dia}/${mes}/${anio}`;
+  }
+  return valor;
+}
+
+function mensajeWhatsappDelCaso() {
+  const lineas = [
+    `Hola, quiero agendar: ${estado.servicio.nombre}.`,
+    "",
+    `País: ${estado.pais.nombre}`,
+    `Motivo: ${estado.categoria.nombre}`,
+    `Mi caso: ${estado.caso.nombre}`,
+    `En qué punto voy: ${estado.etapa.nombre}`,
+  ];
+  estado.etapa.grupos
+    .flatMap((g) => g.campos)
+    .filter((campo) => estado.datosCaso[campo.id])
+    .forEach((campo) => {
+      lineas.push(`${campo.etiqueta}: ${valorLegibleDelCampo(campo, estado.datosCaso[campo.id])}`);
+    });
+  if (estado.perfilQuiz) lineas.push("", `Resultado de mi evaluación: ${estado.perfilQuiz}`);
+  return lineas.join("\n");
+}
+
+function agendarPorWhatsapp() {
+  const url = `https://wa.me/${WHATSAPP_NEGOCIO}?text=${encodeURIComponent(mensajeWhatsappDelCaso())}`;
+  window.open(url, "_blank", "noopener");
+}
+
 function precioActual() {
   return precioDelCaso(estado.caso, estado.servicio.id, estado.etapa?.tarifaEspecial);
 }
@@ -114,7 +161,8 @@ function pantalla(nombre, empujarHistorial = true) {
     etapa: etapaVaPrimero() ? 3 : 4,
     resumen: 5, fecha: 6, datos: 6, pago: 6
   };
-  const totalPasos = PREGUNTA_SERVICIO ? 7 : 6;
+  // Por WhatsApp el recorrido termina en el resumen (no hay fecha ni pago).
+  const totalPasos = (MODO_AGENDA_WHATSAPP ? 5 : 6) + (PREGUNTA_SERVICIO ? 1 : 0);
   const pasoActual = nombre === "servicio"
     ? 1
     : base[nombre] && base[nombre] + (PREGUNTA_SERVICIO ? 1 : 0);
@@ -559,22 +607,26 @@ const render = {
           <span class="resumen-valor">${escapeHtml(estado.etapa.nombre)}</span>
         </div>
         ${filasDatosCaso()}
+        ${MODO_AGENDA_WHATSAPP ? "" : `
         <div class="precio-grande">
           <div class="precio-numero">${precioConocido ? formatearPrecio(precio) : "Por confirmar"}</div>
           <div class="precio-nota">${precioConocido
             ? `Precio de ${estado.servicio.nombre}`
             : "Un asesor te confirmará el precio exacto"}</div>
-        </div>
+        </div>`}
       </div>
       ${mensajeServicio ? `<p class="aviso-precio">${escapeHtml(mensajeServicio)}</p>` : ""}
       ${avisoPrevioPago ? `<p class="aviso-precio">${escapeHtml(avisoPrevioPago)}</p>` : ""}
       <p class="subtitulo" style="margin-bottom:8px; font-weight:600; color:var(--ink);">Estos son los pasos:</p>
       <ol class="pasos-lista">
-        ${estado.servicio.pasos.map((p) => `<li>${p}</li>`).join("")}
+        ${(MODO_AGENDA_WHATSAPP ? PASOS_POR_WHATSAPP : estado.servicio.pasos).map((p) => `<li>${p}</li>`).join("")}
       </ol>
-      <button class="boton-primario" id="btn-continuar">Continuar con mi cita</button>
+      <button class="boton-primario" id="btn-continuar">${MODO_AGENDA_WHATSAPP ? "Agendar por WhatsApp" : "Continuar con mi cita"}</button>
+      ${MODO_AGENDA_WHATSAPP ? `<p class="subtitulo" style="margin-top:12px;">Se abrirá WhatsApp con tu caso ya escrito. Solo tienes que enviarlo.</p>` : ""}
     `;
-    document.getElementById("btn-continuar").onclick = () => pantalla("fecha");
+    document.getElementById("btn-continuar").onclick = MODO_AGENDA_WHATSAPP
+      ? agendarPorWhatsapp
+      : () => pantalla("fecha");
   },
 
   async fecha() {
