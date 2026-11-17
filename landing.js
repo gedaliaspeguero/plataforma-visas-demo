@@ -1,18 +1,36 @@
-// La demo pública se ve igual que el sitio real, así que hay que decirlo:
-// alguien que llegue por el dominio podría llenar todo el wizard creyendo que
-// agendó. El wizard ya lo avisa al pagar, pero mejor decirlo desde la entrada.
-function avisarSiEsDemo() {
-  const esDemo = typeof DEMO_PUBLICA !== "undefined" && DEMO_PUBLICA === true;
-  if (!esDemo) return;
+// En el sitio público (config.demo.js) agendar y pagar se coordinan por
+// WhatsApp: los botones de los servicios abren el chat con el mensaje listo.
+const MODO_WHATSAPP = typeof AGENDA_POR_WHATSAPP !== "undefined" && AGENDA_POR_WHATSAPP === true;
 
-  const aviso = document.createElement("p");
-  aviso.className = "aviso-demo";
-  aviso.setAttribute("role", "status");
-  aviso.textContent =
-    "Sitio en construcción: puedes recorrerlo completo, pero todavía no se agendan citas reales.";
-  document.body.prepend(aviso);
+const MENSAJES_SERVICIO = {
+  orientacion: "Hola, quiero agendar una Orientación Rápida. Mi caso es: ",
+  proceso: "Hola, quiero iniciar mi proceso con ustedes. Mi caso es: ",
+};
+
+function enlaceWhatsapp(mensaje) {
+  return `https://wa.me/${WHATSAPP_NEGOCIO}?text=${encodeURIComponent(mensaje)}`;
 }
 
-avisarSiEsDemo();
+function serviciosPorWhatsapp() {
+  if (!MODO_WHATSAPP) return;
+  document.querySelectorAll('a[href^="agendar.html"]').forEach((enlace) => {
+    const servicio = new URL(enlace.href).searchParams.get("servicio");
+    enlace.href = enlaceWhatsapp(MENSAJES_SERVICIO[servicio] || MENSAJES_SERVICIO.orientacion);
+    enlace.target = "_blank";
+    enlace.rel = "noopener";
+  });
+}
+
+function contactoPorWhatsapp() {
+  const enlace = document.getElementById("pie-whatsapp");
+  if (!MODO_WHATSAPP || !enlace) return;
+  enlace.href = enlaceWhatsapp("Hola, tengo una pregunta sobre mi trámite: ");
+  enlace.target = "_blank";
+  enlace.rel = "noopener";
+  enlace.hidden = false;
+}
+
+serviciosPorWhatsapp();
+contactoPorWhatsapp();
 
 if (window.lucide) lucide.createIcons();

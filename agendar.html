@@ -26,6 +26,12 @@
 
   <script src="catalogo.js"></script>
   <script src="config.js"></script>
+  <script>
+    // Sitio público sin pago en línea: se agenda por WhatsApp desde los servicios.
+    if (typeof AGENDA_POR_WHATSAPP !== "undefined" && AGENDA_POR_WHATSAPP === true) {
+      location.replace("index.html#servicios");
+    }
+  </script>
   <script src="citas.js"></script>
   <script src="wizard.js"></script>
 </body>

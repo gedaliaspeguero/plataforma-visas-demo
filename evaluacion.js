@@ -1,10 +1,15 @@
 // evaluacion.js — el quiz integrado en la plataforma. La matriz de puntos vive
 // en scoring.js y se usa solo para ordenar las áreas que conviene revisar.
-// Diferencia clave con el quiz original: el CTA principal del resultado ya no
-// es WhatsApp sino agendar la consulta, y el resultado viaja pegado a la cita.
+// El CTA principal del resultado depende del sitio: en el público (agenda por
+// WhatsApp) envía el resultado por chat; en el privado abre el agendador y el
+// resultado viaja pegado a la cita.
+
+// En el sitio público (config.demo.js) se agenda por WhatsApp: el resultado
+// se envía por chat en vez de abrir el agendador.
+const MODO_WHATSAPP = typeof AGENDA_POR_WHATSAPP !== "undefined" && AGENDA_POR_WHATSAPP === true;
 
 const TEXTOS = {
-  WHATSAPP_NUMBER: "19142901691",
+  WHATSAPP_NUMBER: typeof WHATSAPP_NEGOCIO !== "undefined" ? WHATSAPP_NEGOCIO : "18098620377",
   BRAND_NAME: "Tu Viaje Legal 360",
 
   INTRO: {
@@ -42,6 +47,7 @@ const TEXTOS = {
     nextStep: "Siguiente paso recomendado: revisa estas áreas con un asesor antes de tomar decisiones sobre tu solicitud.",
     ctaAgendar: "Agendar mi consulta con un experto",
     ctaWhatsapp: "Prefiero escribir por WhatsApp",
+    ctaWhatsappPrincipal: "Hablar con un asesor por WhatsApp",
     ctaShare: "Compartir este test",
     shareText: "Hice el test de Tu Viaje Legal 360 para evaluar mi perfil de visa. Pruébalo:",
     whatsappIntro: (name, caseNumber) =>
@@ -342,13 +348,15 @@ function renderResult() {
     <div class="pillars-chart">${pillarRows}</div>
     <div class="risk-card">${t.nextStep}</div>
     <div class="result-actions">
-      <button class="btn-primary" id="agendarBtn">${t.ctaAgendar}</button>
-      <button class="btn-secundario-quiz" id="whatsappBtn">${t.ctaWhatsapp}</button>
+      ${MODO_WHATSAPP
+        ? `<button class="btn-primary" id="whatsappBtn">${t.ctaWhatsappPrincipal}</button>`
+        : `<button class="btn-primary" id="agendarBtn">${t.ctaAgendar}</button>
+      <button class="btn-secundario-quiz" id="whatsappBtn">${t.ctaWhatsapp}</button>`}
       <button class="share-btn" id="shareBtn">${t.ctaShare}</button>
     </div>
   `;
 
-  el.querySelector("#agendarBtn").addEventListener("click", () => irAAgendar(result));
+  el.querySelector("#agendarBtn")?.addEventListener("click", () => irAAgendar(result));
   el.querySelector("#whatsappBtn").addEventListener("click", () => openWhatsapp(result));
   el.querySelector("#shareBtn").addEventListener("click", shareTest);
 

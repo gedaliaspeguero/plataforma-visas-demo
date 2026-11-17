@@ -357,7 +357,17 @@ h1[tabindex="-1"]:focus {
 .equipo-copy > p:last-child { max-width: 540px; margin: 0; color: var(--gris); font-size: 15px; line-height: 1.75; }
 
 .equipo-foto { position: relative; min-height: 560px; margin: 0; overflow: hidden; background: var(--tinta-suave); }
-.equipo-foto img { width: 100%; height: 100%; position: absolute; inset: 0; object-fit: cover; object-position: center; }
+.equipo-foto img { width: 100%; height: 100%; position: absolute; inset: 0; object-fit: cover; object-position: 50% 22%; }
+/* ---------- landing: personas del equipo ---------- */
+
+.seccion-personas { border-top: 1px solid var(--gris-claro); background: var(--crema); }
+.personas { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 28px; }
+.persona { margin: 0; }
+.persona-foto { aspect-ratio: 4 / 5; margin: 0 0 18px; overflow: hidden; border-radius: var(--radio); background: var(--tinta-suave); }
+.persona-foto img { display: block; width: 100%; height: 100%; object-fit: cover; object-position: 50% 30%; }
+.persona-nombre { margin: 0 0 4px; font-family: var(--serif); font-size: 24px; font-weight: 600; line-height: 1.15; }
+.persona-cargo { margin: 0; color: var(--gris); font-size: 14px; }
+
 /* ---------- landing: servicios ---------- */
 
 .seccion-servicios { background: var(--petroleo); color: var(--blanco); }
@@ -565,6 +575,8 @@ h1[tabindex="-1"]:focus {
 }
 
 .pie-marca p { max-width: 280px; margin: 8px 0 0; }
+.pie-contacto { display: inline-block; margin-top: 14px; color: var(--blanco); font-size: 13px; font-weight: 700; text-decoration: underline; text-underline-offset: 3px; }
+.pie-contacto[hidden] { display: none; }
 .pie-enlaces { display: grid; grid-template-columns: repeat(2, auto); gap: 10px 28px; }
 .pie-enlaces a { color: rgba(255, 255, 255, 0.72); font-size: 11px; text-decoration: none; }
 .pie-legal { max-width: 430px; margin: 0; justify-self: end; }
@@ -603,9 +615,16 @@ h1[tabindex="-1"]:focus {
     font-size: 10.5px;
     white-space: nowrap;
   }
-  .hero { min-height: 720px; align-items: flex-end; padding: 120px 20px 54px; }
-  .hero::after { background: rgba(8, 14, 15, 0.58); }
-  .hero-foto { background-position: 58% center; }
+  /* En vertical la foto no cabe detrás del texto sin tapar las caras:
+     arriba va una franja con las asesoras y el texto empieza debajo. */
+  .hero { --banda-foto: min(112vw, 460px); min-height: 0; align-items: flex-end; padding: calc(var(--banda-foto) - 36px) 20px 54px; }
+  .hero::after {
+    background: linear-gradient(to bottom,
+      rgba(8, 14, 15, 0.2) 0,
+      rgba(8, 14, 15, 0.2) calc(var(--banda-foto) - 150px),
+      var(--tinta) var(--banda-foto));
+  }
+  .hero-foto { bottom: auto; height: var(--banda-foto); background-position: 92% top; }
   .hero-contenido { width: 100%; }
   .hero-eyebrow { font-size: 10px; }
   .hero h1 { max-width: 11ch; font-size: 48px; line-height: 0.98; }
@@ -630,6 +649,23 @@ h1[tabindex="-1"]:focus {
   .equipo-copy { padding: 64px 20px; }
   .equipo-copy h2 { font-size: 42px; }
   .equipo-foto { min-height: 360px; }
+  /* Apiladas, las tres fotos empujaban los servicios casi dos pantallas
+     hacia abajo: en celular van en carrusel y asoma la siguiente tarjeta. */
+  .personas {
+    grid-template-columns: none;
+    grid-auto-flow: column;
+    grid-auto-columns: 74%;
+    gap: 14px;
+    margin: 0 -20px;
+    padding: 0 20px 6px;
+    overflow-x: auto;
+    scroll-snap-type: x mandatory;
+    scroll-padding-left: 20px;
+    scrollbar-width: none;
+  }
+  .personas::-webkit-scrollbar { display: none; }
+  .persona { scroll-snap-align: start; }
+  .persona-nombre { font-size: 20px; }
   .seccion-servicios .seccion-titulo { font-size: 42px; }
   .precio-card { padding: 25px 22px 22px; }
   .gratis-banda { align-items: stretch; flex-direction: column; gap: 22px; margin-top: 34px; padding: 26px 22px; }
