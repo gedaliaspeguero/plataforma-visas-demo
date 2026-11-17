@@ -50,8 +50,8 @@ const TEXTOS = {
     ctaWhatsappPrincipal: "Hablar con un asesor por WhatsApp",
     ctaShare: "Compartir este test",
     shareText: "Hice el test de Tu Viaje Legal 360 para evaluar mi perfil de visa. Pruébalo:",
-    whatsappIntro: (name, caseNumber) =>
-      `Hola, soy ${name || "un usuario"} y acabo de hacer la evaluación de Tu Viaje Legal 360.\n\nReferencia #${caseNumber}\n\nEste es mi resultado:`,
+    whatsappIntro: (name) =>
+      `Hola${name ? `, soy ${name}` : ""}. Acabo de hacer la evaluación gratis de Tu Viaje Legal 360 y quiero hablar con un asesor.`,
   },
 
   FOOTER_DISCLAIMER:
@@ -382,10 +382,27 @@ function irAAgendar(result) {
   window.location.href = `agendar.html?${params.toString()}`;
 }
 
-function openWhatsapp(result) {
+// El cliente ve su resultado en palabras (lo mismo que mostró la pantalla);
+// el código compacto va al final solo para la asesora.
+function mensajeWhatsappDelResultado(result) {
   const t = TEXTOS.RESULT;
-  const code = encodeResultForWhatsapp(result);
-  const message = `${t.whatsappIntro(state.userName, state.caseNumber)}\n\n${code}`;
+  const areas = Object.keys(PILLARS).map((key) => {
+    const tier = getPillarTier(result.pillarScores[key], result.pillarMax[key]);
+    return `• ${PILLARS[key].label}: ${tier === "fuerte" ? "Claro" : "Por revisar"}`;
+  });
+  return [
+    t.whatsappIntro(state.userName),
+    "",
+    `Mi resultado: ${t.bandLabels[result.band]}`,
+    ...areas,
+    "",
+    `Referencia #${state.caseNumber}`,
+    `Código para el asesor: ${encodeResultForWhatsapp(result)}`,
+  ].join("\n");
+}
+
+function openWhatsapp(result) {
+  const message = mensajeWhatsappDelResultado(result);
   const url = `https://wa.me/${TEXTOS.WHATSAPP_NUMBER}?text=${encodeURIComponent(message)}`;
   window.open(url, "_blank");
 }
