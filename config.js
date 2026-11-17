@@ -12,3 +12,7 @@ const AGENDA_POR_WHATSAPP = true;
 // WhatsApp oficial del negocio. Formato: código de país + número, sin "+" ni
 // espacios.
 const WHATSAPP_NEGOCIO = "18098620377";
+
+// Cloudflare Web Analytics del sitio público (token público por diseño: va en
+// la página). Ver métricas en el panel de Cloudflare → Web Analytics.
+const CLOUDFLARE_ANALYTICS_TOKEN = "1269a4b26efa482cb55d55d9a6909a4c";
