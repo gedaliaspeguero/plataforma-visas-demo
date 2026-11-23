@@ -694,7 +694,7 @@ const render = {
       if (dias.length === 0) {
         // Sin "el" delante: nombreDelDia puede devolver "Hoy" o "Mañana", y
         // "es el Mañana" queda mal escrito.
-        lista.innerHTML = `<p class="subtitulo">Tu cita en el consulado es ${nombreDelDia(tope)} y no nos queda ningún horario libre antes de esa fecha. Escríbenos: buscamos cómo atenderte a tiempo.</p>`;
+        lista.innerHTML = `<p class="subtitulo">Tu cita en el consulado es ${nombreDelDia(tope).replace(/^./, (letra) => letra.toLowerCase())} y no nos queda ningún horario libre antes de esa fecha. Escríbenos: buscamos cómo atenderte a tiempo.</p>`;
         return;
       }
       lista.innerHTML = "";

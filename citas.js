@@ -238,9 +238,13 @@ function nombreDelDia(fechaISO) {
   hoy.setHours(0, 0, 0, 0);
   const manana = new Date(hoy);
   manana.setDate(hoy.getDate() + 1);
-  if (fecha.getTime() === hoy.getTime()) return "Hoy";
-  if (fecha.getTime() === manana.getTime()) return "Mañana";
-  return `${dias[fecha.getDay()]} ${dia}/${mes}`;
+  // Siempre con la fecha completa: "Mañana" a secas confunde a quien abre la
+  // página de noche o la deja abierta de un día para otro.
+  const meses = ["enero", "febrero", "marzo", "abril", "mayo", "junio", "julio", "agosto", "septiembre", "octubre", "noviembre", "diciembre"];
+  const completa = `${dias[fecha.getDay()]} ${dia} de ${meses[mes - 1]}`;
+  if (fecha.getTime() === hoy.getTime()) return `Hoy, ${completa}`;
+  if (fecha.getTime() === manana.getTime()) return `Mañana, ${completa}`;
+  return completa.charAt(0).toUpperCase() + completa.slice(1);
 }
 
 function formatearHora12(hora) {
