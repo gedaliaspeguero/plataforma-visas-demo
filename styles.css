@@ -1174,3 +1174,42 @@ h1 {
   .precio-fila:has(.precio-quitar) .precio-nombre { padding-right: 0; }
   .precio-quitar { top: auto; bottom: 16px; }
 }
+
+/* ---- consultores en Admin ---- */
+
+.admin-consultor-datos { min-width: 0; }
+.admin-consultor-datos[hidden], .admin-consultor-botones[hidden], .admin-consultor-form[hidden] { display: none; }
+.admin-consultor-datos .admin-caso-resumen { overflow-wrap: anywhere; }
+
+.admin-consultor-estado {
+  display: inline-block;
+  margin-left: 6px;
+  padding: 2px 8px;
+  border-radius: 999px;
+  background: var(--border);
+  color: var(--text-muted);
+  font-size: 12px;
+  font-weight: 600;
+  vertical-align: middle;
+}
+
+.admin-consultor-estado.activo { background: #dff3e4; color: #1f6b3a; }
+
+.admin-consultor-botones { display: flex; align-items: center; gap: 14px; }
+.admin-consultor-botones .boton-texto {
+  min-height: 44px;
+  padding: 0 4px;
+  border: none;
+  background: none;
+  color: var(--coral-dark);
+  font: inherit;
+  font-size: 14.5px;
+  font-weight: 600;
+  cursor: pointer;
+}
+.admin-consultor-botones .boton-texto:disabled { opacity: 0.4; }
+.admin-consultor-botones .boton-secundario { width: auto; margin: 0; padding-inline: 22px; }
+
+.admin-consultor-form { grid-column: 1 / -1; display: flex; flex-direction: column; gap: 10px; }
+.admin-consultor-form label { display: flex; flex-direction: column; gap: 5px; font-size: 13px; font-weight: 600; color: var(--text-muted); }
+.admin-consultor-aviso { min-height: 18px; margin: 0; font-size: 13px; font-weight: 600; color: var(--coral-dark); }
