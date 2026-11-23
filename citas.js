@@ -84,6 +84,12 @@ async function obtenerHorariosWeb(duracion) {
   return llamarRPC("visas_web_horarios", { p_duracion: duracion });
 }
 
+// Qué trámites tienen precio de proceso completo. Los demás solo ofrecen
+// consulta. El servidor devuelve identificadores, nunca montos.
+async function obtenerServiciosWeb() {
+  return llamarRPC("visas_web_servicios", {});
+}
+
 // Pide un horario. No queda agendado hasta que el equipo verifica el pago.
 async function solicitarCitaWeb(datos) {
   return llamarRPC("visas_web_solicitar", {

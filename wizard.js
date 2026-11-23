@@ -643,6 +643,7 @@ const render = {
       <button class="boton-primario" id="btn-continuar">${MODO_AGENDA_WHATSAPP ? "Agendar por WhatsApp" : MODO_SOLICITUD_WEB ? "Elegir día y hora" : "Continuar con mi cita"}</button>
       ${MODO_AGENDA_WHATSAPP ? `<p class="subtitulo" style="margin-top:12px;">Se abrirá WhatsApp con tu caso ya escrito. Solo tienes que enviarlo.</p>` : ""}
       ${MODO_SOLICITUD_WEB ? `<button class="boton-secundario" id="btn-por-whatsapp" style="margin-top:10px;">Prefiero coordinar por WhatsApp</button>` : ""}
+      ${MODO_SOLICITUD_WEB && estado.servicio.id !== "proceso" ? `<p class="subtitulo" style="margin-top:14px;">Si después haces el proceso completo con nosotros, lo que pagues por esta consulta se te descuenta del total.</p>` : ""}
     `;
     const porWhatsapp = document.getElementById("btn-por-whatsapp");
     if (porWhatsapp) porWhatsapp.onclick = agendarPorWhatsapp;
@@ -923,6 +924,7 @@ const ERRORES_SOLICITUD = {
   falta_nombre: "Escribe tu nombre completo.",
   demasiadas_solicitudes: "Ya tienes dos solicitudes esperando confirmación. Escríbenos por WhatsApp y te ayudamos.",
   intenta_mas_tarde: "Tenemos muchas solicitudes en este momento. Escríbenos por WhatsApp y te atendemos.",
+  solo_consulta: "Este trámite comienza con una consulta. Vuelve al inicio y elige la Orientación, por favor.",
 };
 
 function pantallaSolicitar(c) {
@@ -1017,4 +1019,36 @@ function prepararEntradaDesdeEvaluacion() {
   return "etapa";
 }
 
-pantalla(prepararEntradaDesdeEvaluacion() || (PREGUNTA_SERVICIO ? "servicio" : "paises"));
+// Un trámite sin precio de proceso completo en la lista de las asesoras solo
+// ofrece consulta. Se marca igual que los que ya traían esa regla de fábrica,
+// así el resto del recorrido no tiene que saber de dónde vino.
+async function marcarTramitesSoloConsulta() {
+  let respuesta = null;
+  try {
+    respuesta = await Promise.race([
+      obtenerServiciosWeb(),
+      new Promise((listo) => setTimeout(() => listo(null), 3000)),
+    ]);
+  } catch (e) {
+    console.warn("No se pudo consultar qué trámites tienen proceso:", e);
+  }
+  // Sin respuesta se sigue como antes: el servidor rechaza lo que no aplique.
+  if (!respuesta?.ok || !Array.isArray(respuesta.con_proceso)) return;
+  const conProceso = new Set(respuesta.con_proceso);
+  estado.catalogo.forEach((pais) => pais.categorias.forEach((categoria) => categoria.casos.forEach((caso) => {
+    if (conProceso.has(`${pais.id}:${caso.id}`)) return;
+    if (caso.servicioObligatorio || categoria.servicioObligatorio) return;
+    caso.servicioObligatorio = "orientacion";
+    caso.mensajeServicio = "Este trámite comienza con una consulta. En esa cita revisamos tu caso y te decimos cómo seguir.";
+  })));
+}
+
+async function iniciarRecorrido() {
+  if (MODO_SOLICITUD_WEB) {
+    document.getElementById("pantalla").innerHTML = `<div class="contenido"><p class="subtitulo">Cargando…</p></div>`;
+    await marcarTramitesSoloConsulta();
+  }
+  pantalla(prepararEntradaDesdeEvaluacion() || (PREGUNTA_SERVICIO ? "servicio" : "paises"));
+}
+
+iniciarRecorrido();

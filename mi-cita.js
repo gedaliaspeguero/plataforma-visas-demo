@@ -139,12 +139,13 @@ function mostrarSolicitud(c, cita) {
       ${filaResumen("Hora", `${formatearHora12(cita.hora)} (hora de República Dominicana)`)}
       ${filaResumen("Duración", `${textoDuracionCita(cita)}, por videollamada`)}
       <div class="precio-grande">
-        <div class="precio-numero">${monto ?? "Monto por confirmar"}</div>
+        <div class="precio-numero${monto ? "" : " precio-texto"}">${monto ?? "El precio dependerá de tu situación"}</div>
         <div class="precio-nota">${monto
           ? (esProceso ? `Es el 50% para iniciar. El total es ${dineroCliente(cita.pago_total, cita.pago_moneda)}.` : "Es lo que debes transferir")
-          : "Escríbenos y te decimos cuánto transferir"}</div>
+          : "Escríbenos por WhatsApp y te decimos el monto"}</div>
       </div>
     </div>
+    ${esProceso ? "" : `<p class="pago-nota">Si después haces el proceso completo con nosotros, lo que pagues por esta consulta se te descuenta del total.</p>`}
     <h2 class="pago-titulo">1. Haz la transferencia</h2>
     ${cuentas.length ? cuentas.map(tarjetaDeCuenta).join("") : `<p class="subtitulo">Te enviamos los datos de la cuenta por WhatsApp.</p>`}
     <h2 class="pago-titulo">2. Envíanos el comprobante</h2>

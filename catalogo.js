@@ -303,6 +303,8 @@ const CATALOGO_DEFAULT = [
             resumen: "Para deportistas y grupos de trabajo que viajan juntos por entrenamientos o una actividad común.",
             servicioObligatorio: "orientacion",
             mensajeServicio: "Las citas de grupo comienzan con una consulta de evaluación para revisar a los integrantes y el motivo común del viaje.",
+            // Sin precio fijo: depende de cuántas personas sean.
+            precioVariable: true,
             precios: { orientacion: null, proceso: null }, visible: true, orden: 2
           },
           { id: "f1-estudiante", nombre: "Estudiante", resumen: "Para estudiar en una universidad, colegio o instituto en Estados Unidos.", precios: { orientacion: null, proceso: null }, visible: true, orden: 4 },
@@ -357,6 +359,18 @@ const CATALOGO_DEFAULT = [
         ]
       },
       {
+        // Pedido de las asesoras (23 nov 2026). Los nombres evitan a propósito
+        // la palabra "residencia": estas consultas duran 30 minutos, y esa
+        // palabra las pasaría a 1 hora (ver duracionDelTramite en citas.js).
+        id: "green-card",
+        nombre: "Green Card",
+        resumen: "Renovar tu tarjeta o hacer tu ajuste de estatus",
+        casos: [
+          { id: "green-card-renovar", nombre: "Renovar mi Green Card", resumen: "Tu tarjeta está por vencer, ya venció o se te perdió.", precios: { orientacion: null, proceso: null }, visible: true, orden: 1 },
+          { id: "ajuste-de-estatus", nombre: "Ajuste de estatus", resumen: "Estás en Estados Unidos y quieres tu Green Card sin salir del país.", precios: { orientacion: null, proceso: null }, visible: true, orden: 2 }
+        ]
+      },
+      {
         id: "ciudadania-pasaportes",
         nombre: "Ciudadanía y pasaportes",
         resumen: "Trámites de pasaporte americano y ciudadanía para tus hijos",
@@ -374,7 +388,7 @@ const CATALOGO_DEFAULT = [
         nombre: "Citas urgentes",
         resumen: "Cuando no puedes esperar el tiempo normal de espera",
         casos: [
-          { id: "cita-emergencia", nombre: "Necesito una cita urgente", resumen: "Tu situación no puede esperar la fecha que te dieron.", precios: { orientacion: null, proceso: null }, visible: true, orden: 1 }
+          { id: "cita-emergencia", nombre: "Necesito una cita urgente", resumen: "Tu situación no puede esperar la fecha que te dieron.", precioVariable: true, precios: { orientacion: null, proceso: null }, visible: true, orden: 1 }
         ]
       },
       {

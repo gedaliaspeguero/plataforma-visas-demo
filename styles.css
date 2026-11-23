@@ -1293,3 +1293,31 @@ a.boton-secundario { margin-top: 10px; }
 .pago-cedula [data-cedula] .pago-copiar { margin-left: 8px; }
 .pago-cedula [hidden] { display: none; }
 .pago-cedula-nota { margin: 6px 0 0; font-size: 12.5px; color: var(--text-muted); }
+
+/* ---- la consulta se descuenta del proceso ---- */
+
+.precios-nota {
+  margin: 0 0 18px;
+  padding: 12px 14px;
+  border-radius: 12px;
+  background: #eef3fb;
+  color: var(--ink);
+  font-size: 14px;
+  line-height: 1.45;
+}
+
+.pago-nota {
+  margin: 14px 0 0;
+  padding: 12px 14px;
+  border-radius: 12px;
+  background: #eef3fb;
+  color: var(--ink);
+  font-size: 14px;
+  line-height: 1.45;
+}
+
+/* ---- trámites sin precio fijo ---- */
+
+.precio-fila-variable { grid-template-columns: 1fr; }
+.precio-variable { margin-top: 4px; font-size: 13.5px; color: var(--text-muted); }
+.precio-numero.precio-texto { font-size: 21px; line-height: 1.25; }
