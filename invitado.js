@@ -35,7 +35,10 @@ async function entrar() {
       await cerrarReunionDiaria();
       pantallaInicial();
     };
-    await abrirReunionDiaria(document.getElementById("reunion-diaria"), datos, pantallaInicial);
+    await abrirReunionDiaria(document.getElementById("reunion-diaria"), datos, (motivo) => {
+      if (motivo === "tiempo") mostrarError("reunion_finalizada");
+      else pantallaInicial();
+    });
   } catch (e) {
     console.error(e);
     mostrarError(String(e.message));

@@ -41,9 +41,27 @@ function mensajeDeEstado(cita) {
       : { titulo: "¡Tu cita está confirmada!", detalle: "Estamos preparando tu videollamada. Vuelve a abrir este enlace cerca de la hora de tu cita." };
   }
   if (cita.origen === "whatsapp" && cita.estado === "reunion_programada") {
+    if (citaYaTermino(cita)) {
+      return { titulo: "La hora de tu cita ya pasó", detalle: "Si no pudiste conectarte, escríbenos por WhatsApp para reprogramarla." };
+    }
     return { titulo: "¡Tu cita está confirmada!", detalle: "Entra aquí mismo a tu videollamada. El botón funciona desde una hora antes de tu cita." };
   }
   return MENSAJES_ESTADO[cita.estado] ?? { titulo: "Estado desconocido", detalle: "" };
+}
+
+// La videollamada dura lo que dura la cita y se cierra sola al terminar.
+function duracionDeCita(cita) {
+  return Number(cita.duracion_min) === 30 ? 30 : 60;
+}
+
+function textoDuracionCita(cita) {
+  return duracionDeCita(cita) === 30 ? "30 minutos" : "1 hora";
+}
+
+// Santo Domingo no cambia de hora: siempre va 4 horas detrás de UTC.
+function citaYaTermino(cita) {
+  const inicio = new Date(`${cita.fecha}T${String(cita.hora).slice(0, 5)}:00-04:00`).getTime();
+  return Date.now() >= inicio + duracionDeCita(cita) * 60 * 1000;
 }
 
 function fechaLargaCliente(fechaISO) {
@@ -85,7 +103,12 @@ async function mostrarEstadoCita() {
     const formularioDisponible = resultado.formulario_disponible
       ?? (resultado.estado === "aceptada" || resultado.estado === "formulario_listo");
     const formularioEnviado = resultado.formulario_enviado ?? resultado.estado === "formulario_listo";
-    const puedeEntrar = resultado.estado === "reunion_programada" && !resultado.cancelada;
+    const puedeEntrar = resultado.estado === "reunion_programada" && !resultado.cancelada && !citaYaTermino(resultado);
+    const esVideo = resultado.modalidad !== "whatsapp";
+    // Reglas que las asesoras quieren que el cliente tenga a la vista.
+    const reglas = porWhatsapp && !resultado.cancelada && resultado.estado !== "completada"
+      ? `<p class="subtitulo" style="margin-top:14px;">${esVideo ? "La videollamada se cierra sola cuando termina el tiempo de tu cita: conéctate puntual. " : ""}Puedes reprogramar tu cita hasta 3 meses después de la fecha original. Los pagos no tienen devolución.</p>`
+      : "";
     const contacto = typeof WHATSAPP_NEGOCIO !== "undefined" && WHATSAPP_NEGOCIO
       ? `<p class="subtitulo" style="margin-top:22px;">¿Necesitas cambiar tu cita o tienes una duda? <a href="https://wa.me/${WHATSAPP_NEGOCIO}" target="_blank" rel="noopener">Escríbenos por WhatsApp</a>.</p>`
       : "";
@@ -98,6 +121,7 @@ async function mostrarEstadoCita() {
         ${filaResumen("Trámite", resultado.caso_nombre)}
         ${filaResumen("Día", fechaLargaCliente(resultado.fecha))}
         ${filaResumen("Hora", `${formatearHora12(resultado.hora)} (hora de República Dominicana)`)}
+        ${porWhatsapp ? filaResumen("Duración", textoDuracionCita(resultado)) : ""}
         ${resultado.consultor ? filaResumen("Con", resultado.consultor) : ""}
         ${porWhatsapp ? filaResumen("Modalidad", resultado.modalidad === "whatsapp" ? "Llamada de WhatsApp" : "Videollamada") : filaResumen("Precio", precio)}
       </div>
@@ -111,6 +135,7 @@ async function mostrarEstadoCita() {
             style="width:100%; padding:14px 16px; border:1.5px solid var(--border); border-radius:8px; font-size:14px; font-family:inherit;" />
           <button class="boton-secundario" id="btn-copiar" style="margin-top:10px;">Copiar el enlace</button>
         </div>` : ""}
+      ${reglas}
       ${contacto}
     `;
     const botonFormulario = document.getElementById("btn-formulario");
@@ -166,12 +191,26 @@ async function abrirReunionCliente(token) {
       await cerrarReunionDiaria();
       mostrarEstadoCita();
     };
-    await abrirReunionDiaria(document.getElementById("reunion-diaria"), datos, mostrarEstadoCita);
+    await abrirReunionDiaria(document.getElementById("reunion-diaria"), datos, (motivo) => {
+      if (motivo === "tiempo") mostrarFinDeCita();
+      else mostrarEstadoCita();
+    });
   } catch (e) {
     console.error(e);
+    if (String(e.message) === "reunion_finalizada") { mostrarFinDeCita(); return; }
     c.innerHTML = `<h1>La reunión todavía no está disponible</h1><p class="subtitulo">Intenta entrar de nuevo cerca de la hora de tu cita.</p><button class="boton-secundario" id="btn-volver-estado">Volver</button>`;
     document.getElementById("btn-volver-estado").onclick = mostrarEstadoCita;
   }
+}
+
+// Cuando la llamada se corta porque se cumplió la hora.
+function mostrarFinDeCita() {
+  const c = document.getElementById("contenido");
+  const contacto = typeof WHATSAPP_NEGOCIO !== "undefined" && WHATSAPP_NEGOCIO
+    ? ` <a href="https://wa.me/${WHATSAPP_NEGOCIO}" target="_blank" rel="noopener">Escríbenos por WhatsApp</a> si te quedó alguna duda.`
+    : "";
+  c.innerHTML = `<h1>Se terminó el tiempo de tu cita</h1><p class="subtitulo">La videollamada se cerró porque llegó la hora de fin. Gracias por conectarte.${contacto}</p><button class="boton-secundario" id="btn-volver-estado">Ver mi cita</button>`;
+  document.getElementById("btn-volver-estado").onclick = mostrarEstadoCita;
 }
 
 function campoTexto(id, etiqueta, valor = "", tipo = "text") {

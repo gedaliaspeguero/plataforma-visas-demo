@@ -867,6 +867,8 @@ h1 {
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: 12px;
+  /* Si una etiqueta ocupa dos líneas, los dos campos siguen a la misma altura. */
+  align-items: end;
 }
 
 .agenda-subtitulo { margin: 8px 0 6px; font-size: 15px; }
@@ -1002,4 +1004,173 @@ h1 {
 /* En iPad y computadora las ventanas van al centro, no pegadas abajo. */
 @media (min-width: 700px) {
   .modal-agenda-fondo { align-items: center; }
+}
+
+/* ---- contador de la videollamada ---- */
+
+.reunion-reloj {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 4px 12px;
+  margin-bottom: 8px;
+  padding: 10px 14px;
+  border-radius: 10px;
+  background: #efeae5;
+  color: var(--ink);
+  font-size: 15px;
+}
+
+.reunion-reloj-texto {
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+
+.reunion-reloj-aviso { font-size: 14px; }
+/* Coral oscuro: el blanco encima se lee bien (contraste 4.7). */
+.reunion-reloj.alerta { background: var(--coral-dark); color: #fff; }
+
+/* ---- agenda: duración de los horarios libres y notas ---- */
+
+.agenda-duraciones {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 6px;
+  margin-bottom: 6px;
+}
+
+.agenda-duracion {
+  min-height: 44px;
+  padding: 8px 10px;
+  border: 1.5px solid var(--border);
+  border-radius: 12px;
+  background: var(--card);
+  color: var(--text-muted);
+  font: inherit;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.agenda-duracion.elegida { background: var(--ink); border-color: var(--ink); color: #fff; }
+
+.agenda-nota {
+  margin: 10px 0 12px;
+  font-size: 13px;
+  color: var(--text-muted);
+}
+
+.agenda-casilla {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  margin: 0 0 16px;
+  font-size: 14px;
+  line-height: 1.4;
+  cursor: pointer;
+}
+
+.agenda-casilla input { width: 20px; height: 20px; margin: 0; flex: 0 0 auto; }
+
+/* ---- lista de precios ---- */
+
+.precios-vista { max-width: 860px; }
+
+.precios-buscar {
+  width: 100%;
+  min-height: 46px;
+  margin-bottom: 18px;
+  padding: 10px 14px;
+  border: 1.5px solid var(--border);
+  border-radius: 12px;
+  background: var(--card);
+  color: var(--ink);
+  font: inherit;
+  font-size: 16px;
+}
+
+.precios-grupo { margin-bottom: 26px; }
+.precios-grupo .boton-secundario { margin-top: 4px; }
+
+/* En celular cada trámite es una tarjeta: nombre arriba, casillas abajo. */
+.precio-fila {
+  position: relative;
+  display: grid;
+  grid-template-columns: 1fr 1fr 84px;
+  gap: 10px;
+  align-items: end;
+  margin-bottom: 10px;
+  padding: 14px 16px;
+  border: 1.5px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--card);
+}
+
+.precio-fila[hidden] { display: none; }
+
+.precio-nombre {
+  grid-column: 1 / -1;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.precio-nombre strong { font-size: 15.5px; }
+.precio-nombre span { font-size: 13px; color: var(--text-muted); }
+.precio-estado { min-height: 17px; }
+.precio-estado.error { color: var(--coral-dark); font-weight: 600; }
+
+.precio-nombre-campo,
+.precio-campo input,
+.precio-campo select {
+  width: 100%;
+  min-height: 44px;
+  padding: 8px 10px;
+  border: 1.5px solid var(--border);
+  border-radius: 8px;
+  background: var(--card);
+  color: var(--ink);
+  font: inherit;
+  font-size: 16px;
+}
+
+.precio-campo {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  min-width: 0;
+  font-size: 12.5px;
+  font-weight: 600;
+  color: var(--text-muted);
+}
+
+.precio-nombre-campo { font-weight: 600; }
+
+.precio-quitar {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  width: 36px;
+  height: 36px;
+  border: 1.5px solid var(--border);
+  border-radius: 8px;
+  background: var(--card);
+  color: var(--coral-dark);
+  font-size: 20px;
+  line-height: 1;
+  cursor: pointer;
+}
+
+/* En la tarjeta, el nombre editable deja sitio al botón de quitar. */
+.precio-fila:has(.precio-quitar) .precio-nombre { padding-right: 46px; }
+
+/* En pantallas anchas (las mismas en que el panel se ensancha), una línea
+   por trámite, como una hoja de precios. */
+@media (min-width: 1000px) {
+  .precio-fila { grid-template-columns: minmax(0, 1fr) 150px 150px 90px; }
+  .precio-nombre { grid-column: auto; align-self: center; }
+  .precio-fila:has(.precio-quitar) { padding-right: 60px; }
+  .precio-fila:has(.precio-quitar) .precio-nombre { padding-right: 0; }
+  .precio-quitar { top: auto; bottom: 16px; }
 }
