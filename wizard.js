@@ -42,7 +42,21 @@ const PREGUNTA_SERVICIO = servicioDeLaUrl === null;
 // Sitio público sin pago en línea (config.demo.js): el recorrido termina en el
 // resumen y "Agendar" abre WhatsApp con todo lo que la persona eligió, para
 // que la asesora reciba el caso completo sin tener que preguntar.
-const MODO_AGENDA_WHATSAPP = typeof AGENDA_POR_WHATSAPP !== "undefined" && AGENDA_POR_WHATSAPP === true;
+// Reserva en la web (config.js): el cliente elige su horario y la cita queda
+// esperando a que el equipo verifique el pago. Le gana al modo WhatsApp.
+const MODO_SOLICITUD_WEB = !MODO_DEMO_PUBLICA && typeof RESERVA_WEB !== "undefined" && RESERVA_WEB === true;
+const MODO_AGENDA_WHATSAPP = !MODO_SOLICITUD_WEB && typeof AGENDA_POR_WHATSAPP !== "undefined" && AGENDA_POR_WHATSAPP === true;
+
+const PASOS_SOLICITUD_WEB = [
+  "Eliges el día y la hora que te queden bien",
+  "Pagas por transferencia y nos envías el comprobante por WhatsApp",
+  "Verificamos tu pago y te confirmamos la cita",
+  "Tienes tu consulta por videollamada con un asesor"
+];
+
+function duracionActual() {
+  return duracionDelTramite(estado.servicio.id, estado.categoria?.nombre, estado.caso?.nombre);
+}
 
 const PASOS_POR_WHATSAPP = [
   "Nos envías tu caso por WhatsApp (ya va escrito)",
@@ -159,10 +173,10 @@ function pantalla(nombre, empujarHistorial = true) {
     paises: 1, categorias: 2, "caso-datos": 4,
     casos: etapaVaPrimero() ? 4 : 3,
     etapa: etapaVaPrimero() ? 3 : 4,
-    resumen: 5, fecha: 6, datos: 6, pago: 6
+    resumen: 5, fecha: 6, datos: MODO_SOLICITUD_WEB ? 7 : 6, pago: 6
   };
   // Por WhatsApp el recorrido termina en el resumen (no hay fecha ni pago).
-  const totalPasos = (MODO_AGENDA_WHATSAPP ? 5 : 6) + (PREGUNTA_SERVICIO ? 1 : 0);
+  const totalPasos = (MODO_AGENDA_WHATSAPP ? 5 : MODO_SOLICITUD_WEB ? 7 : 6) + (PREGUNTA_SERVICIO ? 1 : 0);
   const pasoActual = nombre === "servicio"
     ? 1
     : base[nombre] && base[nombre] + (PREGUNTA_SERVICIO ? 1 : 0);
@@ -607,7 +621,12 @@ const render = {
           <span class="resumen-valor">${escapeHtml(estado.etapa.nombre)}</span>
         </div>
         ${filasDatosCaso()}
-        ${MODO_AGENDA_WHATSAPP ? "" : `
+        ${MODO_SOLICITUD_WEB ? `
+        <div class="resumen-fila">
+          <span class="resumen-etiqueta">Duración</span>
+          <span class="resumen-valor">${duracionActual() === 30 ? "30 minutos" : "1 hora"}, por videollamada</span>
+        </div>` : ""}
+        ${MODO_AGENDA_WHATSAPP || MODO_SOLICITUD_WEB ? "" : `
         <div class="precio-grande">
           <div class="precio-numero">${precioConocido ? formatearPrecio(precio) : "Por confirmar"}</div>
           <div class="precio-nota">${precioConocido
@@ -619,11 +638,14 @@ const render = {
       ${avisoPrevioPago ? `<p class="aviso-precio">${escapeHtml(avisoPrevioPago)}</p>` : ""}
       <p class="subtitulo" style="margin-bottom:8px; font-weight:600; color:var(--ink);">Estos son los pasos:</p>
       <ol class="pasos-lista">
-        ${(MODO_AGENDA_WHATSAPP ? PASOS_POR_WHATSAPP : estado.servicio.pasos).map((p) => `<li>${p}</li>`).join("")}
+        ${(MODO_AGENDA_WHATSAPP ? PASOS_POR_WHATSAPP : MODO_SOLICITUD_WEB ? PASOS_SOLICITUD_WEB : estado.servicio.pasos).map((p) => `<li>${p}</li>`).join("")}
       </ol>
-      <button class="boton-primario" id="btn-continuar">${MODO_AGENDA_WHATSAPP ? "Agendar por WhatsApp" : "Continuar con mi cita"}</button>
+      <button class="boton-primario" id="btn-continuar">${MODO_AGENDA_WHATSAPP ? "Agendar por WhatsApp" : MODO_SOLICITUD_WEB ? "Elegir día y hora" : "Continuar con mi cita"}</button>
       ${MODO_AGENDA_WHATSAPP ? `<p class="subtitulo" style="margin-top:12px;">Se abrirá WhatsApp con tu caso ya escrito. Solo tienes que enviarlo.</p>` : ""}
+      ${MODO_SOLICITUD_WEB ? `<button class="boton-secundario" id="btn-por-whatsapp" style="margin-top:10px;">Prefiero coordinar por WhatsApp</button>` : ""}
     `;
+    const porWhatsapp = document.getElementById("btn-por-whatsapp");
+    if (porWhatsapp) porWhatsapp.onclick = agendarPorWhatsapp;
     document.getElementById("btn-continuar").onclick = MODO_AGENDA_WHATSAPP
       ? agendarPorWhatsapp
       : () => pantalla("fecha");
@@ -642,13 +664,18 @@ const render = {
 
     c.innerHTML = `
       <h1>¿Qué día te queda bien?</h1>
-      <p class="subtitulo">Estos son los horarios libres para tu consulta con un asesor. Todos están en hora de Santo Domingo (UTC-4).</p>
+      <p class="subtitulo">${MODO_SOLICITUD_WEB
+        ? `Tu consulta dura ${duracionActual() === 30 ? "30 minutos" : "1 hora"}. Estos son los horarios libres, en hora de República Dominicana.`
+        : "Estos son los horarios libres para tu consulta con un asesor. Todos están en hora de Santo Domingo (UTC-4)."}</p>
       <div id="lista-fechas"><p class="subtitulo">Buscando horarios disponibles…</p></div>
     `;
 
     const lista = document.getElementById("lista-fechas");
     try {
-      const disponibilidad = await obtenerDisponibilidad();
+      const disponibilidad = MODO_SOLICITUD_WEB
+        ? await obtenerHorariosWeb(duracionActual())
+        : await obtenerDisponibilidad();
+      if (MODO_SOLICITUD_WEB && !disponibilidad.ok) throw new Error(disponibilidad.error || "sin_horarios");
       const todos = disponibilidad.dias || [];
       // Si el cliente ya tiene fecha en el consulado, prepararlo DESPUÉS no
       // sirve de nada: esos días ni se le enseñan, para que no pague por algo
@@ -705,6 +732,7 @@ const render = {
 
   datos() {
     const c = document.getElementById("contenido");
+    if (MODO_SOLICITUD_WEB) return pantallaSolicitar(c);
     c.innerHTML = `
       <h1>¿A nombre de quién es la cita?</h1>
       <p class="subtitulo">${MODO_DEMO_PUBLICA
@@ -883,6 +911,87 @@ const render = {
     `;
   }
 };
+
+// Último paso de la reserva en la web: nombre y WhatsApp. Al enviar, el
+// horario queda apartado y la persona pasa a la página de su cita, donde
+// están el monto, las cuentas y el botón para mandar el comprobante.
+const ERRORES_SOLICITUD = {
+  horario_ocupado: "Justo se ocupó ese horario. Vuelve atrás y elige otro, por favor.",
+  muy_pronto: "Ese horario ya está muy cerca. Vuelve atrás y elige otro, por favor.",
+  fecha_pasada: "Ese horario ya pasó. Vuelve atrás y elige otro, por favor.",
+  telefono_invalido: "Revisa tu número de WhatsApp: debe tener al menos 10 dígitos.",
+  falta_nombre: "Escribe tu nombre completo.",
+  demasiadas_solicitudes: "Ya tienes dos solicitudes esperando confirmación. Escríbenos por WhatsApp y te ayudamos.",
+  intenta_mas_tarde: "Tenemos muchas solicitudes en este momento. Escríbenos por WhatsApp y te atendemos.",
+};
+
+function pantallaSolicitar(c) {
+  const estiloCampo = "padding:16px 18px; border:1.5px solid var(--gris-claro); border-radius:var(--radio); font-size:16px; font-family:inherit;";
+  c.innerHTML = `
+    <h1>¿A nombre de quién es la cita?</h1>
+    <p class="subtitulo">${formatearFechaCompleta(estado.fecha)} a las ${formatearHora12(estado.hora)}, hora de República Dominicana.</p>
+    <div class="opciones" style="margin-bottom:20px;">
+      <label class="campo-etiqueta" for="input-nombre">Nombre completo</label>
+      <input id="input-nombre" type="text" placeholder="Escribe tu nombre" autocomplete="name" aria-describedby="error-datos" style="${estiloCampo}" />
+      <label class="campo-etiqueta" for="input-telefono">Tu WhatsApp</label>
+      <input id="input-telefono" type="tel" placeholder="809 000 0000" autocomplete="tel" inputmode="tel" aria-describedby="error-datos" style="${estiloCampo}" />
+    </div>
+    <p class="subtitulo" id="error-datos" role="alert" aria-live="polite" style="color:var(--acento-oscuro); display:none;"></p>
+    <button class="boton-primario" id="btn-continuar">Apartar mi horario</button>
+    <p class="subtitulo" style="margin-top:12px;">Te lo guardamos mientras haces la transferencia. Tu cita queda confirmada cuando verifiquemos el pago.</p>
+  `;
+  document.getElementById("input-nombre").value = estado.nombre ?? "";
+  document.getElementById("input-telefono").value = estado.telefono ?? "";
+
+  const boton = document.getElementById("btn-continuar");
+  const error = document.getElementById("error-datos");
+  const avisar = (texto, campo) => {
+    error.textContent = texto;
+    error.style.display = "block";
+    if (campo) document.getElementById(campo).focus();
+  };
+
+  boton.onclick = async () => {
+    const nombre = document.getElementById("input-nombre").value.trim();
+    const telefono = document.getElementById("input-telefono").value.trim();
+    error.style.display = "none";
+    if (nombre.length < 2) return avisar(ERRORES_SOLICITUD.falta_nombre, "input-nombre");
+    if (telefono.replace(/\D/g, "").length < 10) return avisar(ERRORES_SOLICITUD.telefono_invalido, "input-telefono");
+    estado.nombre = nombre;
+    estado.telefono = telefono;
+
+    boton.disabled = true;
+    boton.textContent = "Apartando tu horario…";
+    try {
+      const resultado = await solicitarCitaWeb({
+        nombre,
+        telefono,
+        paisId: estado.pais.id,
+        paisNombre: estado.pais.nombre,
+        categoriaId: estado.categoria.id,
+        categoriaNombre: estado.categoria.nombre,
+        casoId: estado.caso.id,
+        casoNombre: estado.caso.nombre,
+        fecha: estado.fecha,
+        hora: estado.hora,
+        tipoServicio: estado.servicio.id,
+        etapa: estado.etapa.id,
+        datosCaso: estado.datosCaso,
+        perfil: estado.perfilQuiz,
+      });
+      if (resultado.ok) {
+        window.location.href = `mi-cita.html?token=${encodeURIComponent(resultado.token)}`;
+        return;
+      }
+      avisar(ERRORES_SOLICITUD[resultado.error] || "No pudimos apartar tu horario. Inténtalo de nuevo o escríbenos por WhatsApp.");
+    } catch (e) {
+      console.error(e);
+      avisar("No pudimos apartar tu horario. Revisa tu conexión e inténtalo de nuevo.");
+    }
+    boton.disabled = false;
+    boton.textContent = "Apartar mi horario";
+  };
+}
 
 function formatearFechaCompleta(fechaISO) {
   const [anio, mes, dia] = fechaISO.split("-").map(Number);

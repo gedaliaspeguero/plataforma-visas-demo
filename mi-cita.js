@@ -1,7 +1,7 @@
 const MENSAJES_ESTADO = {
   pagada: {
     titulo: "Estamos confirmando tu cita",
-    detalle: "Un consultor va a tomar tu caso muy pronto. Si nadie lo confirma en 24 horas, te devolvemos el 100% de tu pago.",
+    detalle: "Un asesor va a confirmar tu cita muy pronto. Si tienes alguna duda, escríbenos por WhatsApp.",
   },
   aceptada: {
     titulo: "¡Tu cita fue confirmada!",
@@ -20,12 +20,12 @@ const MENSAJES_ESTADO = {
     detalle: "Gracias por confiar en nosotros.",
   },
   rechazada: {
-    titulo: "Esta cita fue rechazada",
-    detalle: "Te devolvemos el 100% de tu pago en los próximos días.",
+    titulo: "No pudimos confirmar esta cita",
+    detalle: "Escríbenos por WhatsApp y buscamos otro horario para ti.",
   },
   vencida: {
-    titulo: "Nadie pudo confirmar tu cita a tiempo",
-    detalle: "Te devolvemos el 100% de tu pago en los próximos días.",
+    titulo: "Esta cita no se llegó a confirmar",
+    detalle: "Escríbenos por WhatsApp y buscamos otro horario para ti.",
   },
 };
 
@@ -35,18 +35,141 @@ function mensajeDeEstado(cita) {
   if (cita.cancelada) {
     return { titulo: "Esta cita fue cancelada", detalle: "Si quieres reprogramarla o tienes alguna duda, escríbenos por WhatsApp." };
   }
-  if (cita.origen === "whatsapp" && ["aceptada", "formulario_listo"].includes(cita.estado)) {
+  const acordada = cita.origen === "whatsapp" || cita.por_solicitud === true;
+  if (acordada && ["aceptada", "formulario_listo"].includes(cita.estado)) {
     return cita.modalidad === "whatsapp"
       ? { titulo: "¡Tu cita está confirmada!", detalle: "Tu asesor te llamará por WhatsApp a la hora de tu cita." }
       : { titulo: "¡Tu cita está confirmada!", detalle: "Estamos preparando tu videollamada. Vuelve a abrir este enlace cerca de la hora de tu cita." };
   }
-  if (cita.origen === "whatsapp" && cita.estado === "reunion_programada") {
+  if (acordada && cita.estado === "reunion_programada") {
     if (citaYaTermino(cita)) {
       return { titulo: "La hora de tu cita ya pasó", detalle: "Si no pudiste conectarte, escríbenos por WhatsApp para reprogramarla." };
     }
     return { titulo: "¡Tu cita está confirmada!", detalle: "Entra aquí mismo a tu videollamada. El botón funciona desde una hora antes de tu cita." };
   }
   return MENSAJES_ESTADO[cita.estado] ?? { titulo: "Estado desconocido", detalle: "" };
+}
+
+// ---------- solicitud hecha en la web: esperando el pago ----------
+
+function dineroCliente(monto, moneda) {
+  return `${moneda === "USD" ? "US$" : "RD$"}${Number(monto).toLocaleString("es-DO")}`;
+}
+
+// "hoy a las 5:30 PM" / "mañana a las 9:28 AM" / "el lunes 30 a las 11:30 AM"
+function momentoCercano(iso) {
+  const fecha = new Date(iso);
+  const dia = (d) => new Intl.DateTimeFormat("en-CA", { timeZone: "America/Santo_Domingo" }).format(d);
+  const hora = new Intl.DateTimeFormat("es-DO", { timeZone: "America/Santo_Domingo", hour: "numeric", minute: "2-digit", hour12: true })
+    .format(fecha).replace(/\s*a\.\s*m\./i, " AM").replace(/\s*p\.\s*m\./i, " PM");
+  const manana = new Date(Date.now() + 24 * 60 * 60 * 1000);
+  if (dia(fecha) === dia(new Date())) return `hoy a las ${hora}`;
+  if (dia(fecha) === dia(manana)) return `mañana a las ${hora}`;
+  return `el ${fechaLargaCliente(dia(fecha))} a las ${hora}`;
+}
+
+function enlaceWhatsapp(texto) {
+  return `https://wa.me/${WHATSAPP_NEGOCIO}?text=${encodeURIComponent(texto)}`;
+}
+
+function tarjetaDeCuenta(cuenta) {
+  const fila = (etiqueta, valor, copiar) => valor ? `
+    <div class="resumen-fila">
+      <span class="resumen-etiqueta">${etiqueta}</span>
+      <span class="resumen-valor">${escapeHtmlSimple(valor)}${copiar ? ` <button class="pago-copiar" data-copiar="${escapeHtmlSimple(valor).replace(/"/g, "&quot;")}">Copiar</button>` : ""}</span>
+    </div>` : "";
+  return `
+    <div class="resumen-caja pago-cuenta">
+      <div class="pago-cuenta-titulo">${cuenta.moneda === "USD" ? "Para pagar en dólares" : "Para pagar en pesos"}</div>
+      ${fila("Banco", cuenta.banco)}
+      ${fila("Tipo de cuenta", cuenta.tipo)}
+      ${fila("Número", cuenta.numero, true)}
+      ${fila("A nombre de", cuenta.titular)}
+      ${cuenta.cedula ? `
+      <div class="resumen-fila pago-cedula">
+        <span class="resumen-etiqueta">Cédula del titular</span>
+        <span class="resumen-valor">
+          <button class="pago-copiar" data-mostrar-cedula>Mostrar cédula</button>
+          <span data-cedula hidden>${escapeHtmlSimple(cuenta.cedula)} <button class="pago-copiar" data-copiar="${escapeHtmlSimple(cuenta.cedula).replace(/"/g, "&quot;")}">Copiar</button></span>
+        </span>
+      </div>
+      <p class="pago-cedula-nota">Solo te la pide tu banco si transfieres desde otro banco.</p>` : ""}
+    </div>`;
+}
+
+// Devuelve true si se encargó de pintar la página.
+function mostrarSolicitud(c, cita) {
+  if (!cita.por_solicitud || !["pagada", "vencida", "rechazada"].includes(cita.estado)) return false;
+  const cuando = `${fechaLargaCliente(cita.fecha)} a las ${formatearHora12(cita.hora)}`;
+  const otraVez = `<a class="boton-primario" href="agendar.html">Elegir otro horario</a>`;
+  const ayuda = `<a class="boton-secundario" href="${enlaceWhatsapp(`Hola, soy ${cita.cliente_nombre}. Pedí una cita para el ${cuando} y necesito ayuda.`)}" target="_blank" rel="noopener">Escribirnos por WhatsApp</a>`;
+
+  if (cita.estado === "vencida") {
+    c.innerHTML = `
+      <h1>Se venció el tiempo para confirmar</h1>
+      <p class="subtitulo">No recibimos tu pago a tiempo y el horario del ${cuando} quedó libre otra vez. Si ya pagaste, escríbenos y lo resolvemos.</p>
+      ${otraVez}${ayuda}`;
+    return true;
+  }
+  if (cita.estado === "rechazada") {
+    c.innerHTML = `
+      <h1>No pudimos confirmar tu cita</h1>
+      <p class="subtitulo">${escapeHtmlSimple(cita.motivo_rechazo || "No se recibió el pago")}. El horario del ${cuando} quedó libre. Si crees que es un error, escríbenos.</p>
+      ${otraVez}${ayuda}`;
+    return true;
+  }
+
+  const esProceso = cita.tipo_servicio === "proceso";
+  const monto = cita.pago_ahora != null ? dineroCliente(cita.pago_ahora, cita.pago_moneda) : null;
+  // Si ya se sabe en qué moneda paga, solo se le enseña esa cuenta: ver una
+  // cuenta en dólares al lado de un monto en pesos confunde.
+  const todas = cita.cuentas || [];
+  const deSuMoneda = todas.filter((cuenta) => cuenta.moneda === cita.pago_moneda);
+  const cuentas = monto && deSuMoneda.length ? deSuMoneda : todas;
+  const comprobante = `Hola, soy ${cita.cliente_nombre}. Pedí una cita para el ${cuando} (${cita.caso_nombre}). Aquí va mi comprobante de pago.`;
+  const sinMonto = `Hola, soy ${cita.cliente_nombre}. Pedí una cita para el ${cuando} (${cita.caso_nombre}). ¿Cuánto debo transferir?`;
+
+  c.innerHTML = `
+    <h1>Tu horario está apartado</h1>
+    <p class="subtitulo">Te lo guardamos hasta <strong>${momentoCercano(cita.vence_en)}</strong>. Tu cita queda confirmada cuando verifiquemos tu pago.</p>
+    <div class="resumen-caja">
+      ${filaResumen("Nombre", cita.cliente_nombre)}
+      ${filaResumen("Trámite", cita.caso_nombre)}
+      ${filaResumen("Día", fechaLargaCliente(cita.fecha))}
+      ${filaResumen("Hora", `${formatearHora12(cita.hora)} (hora de República Dominicana)`)}
+      ${filaResumen("Duración", `${textoDuracionCita(cita)}, por videollamada`)}
+      <div class="precio-grande">
+        <div class="precio-numero">${monto ?? "Monto por confirmar"}</div>
+        <div class="precio-nota">${monto
+          ? (esProceso ? `Es el 50% para iniciar. El total es ${dineroCliente(cita.pago_total, cita.pago_moneda)}.` : "Es lo que debes transferir")
+          : "Escríbenos y te decimos cuánto transferir"}</div>
+      </div>
+    </div>
+    <h2 class="pago-titulo">1. Haz la transferencia</h2>
+    ${cuentas.length ? cuentas.map(tarjetaDeCuenta).join("") : `<p class="subtitulo">Te enviamos los datos de la cuenta por WhatsApp.</p>`}
+    <h2 class="pago-titulo">2. Envíanos el comprobante</h2>
+    <a class="boton-primario" href="${enlaceWhatsapp(monto ? comprobante : sinMonto)}" target="_blank" rel="noopener">${monto ? "Enviar comprobante por WhatsApp" : "Preguntar el monto por WhatsApp"}</a>
+    <p class="subtitulo" style="margin-top:14px;">Guarda este enlace: aquí mismo verás tu cita confirmada y entrarás a la videollamada. Los pagos no tienen devolución, pero puedes reprogramar tu cita hasta 3 meses después.</p>
+  `;
+  // La cédula no sale a la vista: aparece solo si la persona la pide.
+  c.querySelectorAll("[data-mostrar-cedula]").forEach((boton) => {
+    boton.onclick = () => {
+      boton.hidden = true;
+      boton.parentElement.querySelector("[data-cedula]").hidden = false;
+    };
+  });
+  c.querySelectorAll("[data-copiar]").forEach((boton) => {
+    boton.onclick = async () => {
+      try {
+        await navigator.clipboard.writeText(boton.dataset.copiar);
+        boton.textContent = "Copiado ✓";
+      } catch (e) {
+        boton.textContent = "Cópialo a mano";
+      }
+      setTimeout(() => { boton.textContent = "Copiar"; }, 2000);
+    };
+  });
+  return true;
 }
 
 // La videollamada dura lo que dura la cita y se cierra sola al terminar.
@@ -95,8 +218,11 @@ async function mostrarEstadoCita() {
       c.innerHTML = `<h1>No encontramos esa cita</h1><p class="subtitulo">Revisa el link o escríbenos.</p>`;
       return;
     }
+    if (mostrarSolicitud(c, resultado)) return;
     const info = mensajeDeEstado(resultado);
-    const porWhatsapp = resultado.origen === "whatsapp";
+    // Una cita pedida en la web y ya aceptada se ve igual que una acordada
+    // por WhatsApp: mismas reglas, misma videollamada.
+    const porWhatsapp = resultado.origen === "whatsapp" || resultado.por_solicitud === true;
     const precio = resultado.precio_usd != null ? formatearPrecio(resultado.precio_usd) : "Por confirmar";
     // El servidor dice si hay formulario que llenar; el respaldo cubre una
     // base que todavía no tenga ese dato.
@@ -122,7 +248,7 @@ async function mostrarEstadoCita() {
         ${filaResumen("Día", fechaLargaCliente(resultado.fecha))}
         ${filaResumen("Hora", `${formatearHora12(resultado.hora)} (hora de República Dominicana)`)}
         ${porWhatsapp ? filaResumen("Duración", textoDuracionCita(resultado)) : ""}
-        ${resultado.consultor ? filaResumen("Con", resultado.consultor) : ""}
+        ${["aceptada", "formulario_listo", "reunion_programada"].includes(resultado.estado) && !resultado.cancelada ? filaResumen("Con", "Una asesora") : ""}
         ${porWhatsapp ? filaResumen("Modalidad", resultado.modalidad === "whatsapp" ? "Llamada de WhatsApp" : "Videollamada") : filaResumen("Precio", precio)}
       </div>
       ${puedeEntrar ? `<button class="boton-primario" id="btn-reunion">Entrar a mi videollamada</button>` : ""}

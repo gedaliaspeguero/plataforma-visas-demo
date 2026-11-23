@@ -1213,3 +1213,83 @@ h1 {
 .admin-consultor-form { grid-column: 1 / -1; display: flex; flex-direction: column; gap: 10px; }
 .admin-consultor-form label { display: flex; flex-direction: column; gap: 5px; font-size: 13px; font-weight: 600; color: var(--text-muted); }
 .admin-consultor-aviso { min-height: 18px; margin: 0; font-size: 13px; font-weight: 600; color: var(--coral-dark); }
+
+/* ---- página del cliente: pagar una solicitud ---- */
+
+.pago-titulo { margin: 26px 0 10px; font-size: 17px; }
+.pago-cuenta { margin-bottom: 12px; }
+.pago-cuenta-titulo { margin-bottom: 6px; font-size: 13px; font-weight: 700; letter-spacing: 0.02em; text-transform: uppercase; color: var(--text-muted); }
+
+.pago-copiar {
+  margin-left: 8px;
+  min-height: 32px;
+  padding: 4px 12px;
+  border: 1.5px solid var(--border);
+  border-radius: 999px;
+  background: var(--card);
+  color: var(--coral-dark);
+  font: inherit;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+a.boton-primario, a.boton-secundario { display: block; text-align: center; text-decoration: none; }
+a.boton-secundario { margin-top: 10px; }
+
+/* ---- solicitudes de la web, arriba de la agenda ---- */
+
+.solicitudes {
+  margin-bottom: 22px;
+  padding: 16px;
+  border: 1.5px solid var(--coral);
+  border-radius: var(--radius);
+  background: #fdf3ef;
+}
+
+.solicitudes .agenda-titulo-dia { margin-top: 0; }
+.solicitudes-ayuda { margin: 4px 0 12px; }
+
+.solicitudes-cuenta {
+  display: inline-block;
+  min-width: 24px;
+  margin-left: 6px;
+  padding: 1px 8px;
+  border-radius: 999px;
+  background: var(--coral-dark);
+  color: #fff;
+  font-size: 13px;
+  text-align: center;
+  vertical-align: middle;
+}
+
+.solicitudes-lista { display: grid; gap: 10px; }
+
+.solicitud {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  width: 100%;
+  padding: 12px 14px;
+  border: 1.5px solid var(--border);
+  border-radius: 12px;
+  background: var(--card);
+  color: var(--ink);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.solicitud-nombre { font-size: 15.5px; font-weight: 700; }
+.solicitud-detalle { font-size: 13.5px; color: var(--text-muted); }
+.solicitud-pie { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 10px; margin-top: 6px; }
+.solicitud-vence { font-size: 12.5px; color: var(--text-muted); }
+
+@media (min-width: 700px) {
+  .solicitudes-lista { grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); }
+}
+
+.pago-cedula .pago-copiar { margin-left: 0; }
+.pago-cedula [data-cedula] .pago-copiar { margin-left: 8px; }
+.pago-cedula [hidden] { display: none; }
+.pago-cedula-nota { margin: 6px 0 0; font-size: 12.5px; color: var(--text-muted); }

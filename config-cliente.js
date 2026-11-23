@@ -19,4 +19,9 @@ const SITIO_CLIENTE = "https://tuviajelegal.com";
 // Mientras no haya pago con tarjeta, se agenda por WhatsApp: la persona arma
 // su caso en la web, lo envía por chat y la asesora crea la cita en el panel.
 const AGENDA_POR_WHATSAPP = true;
+// El cliente elige su horario en la web y la cita queda esperando a que el
+// equipo verifique el pago y la acepte. En false, agendar.html vuelve a
+// terminar en WhatsApp como antes.
+const RESERVA_WEB = true;
 const WHATSAPP_NEGOCIO = "18098620377";
+const CLOUDFLARE_ANALYTICS_TOKEN = "1269a4b26efa482cb55d55d9a6909a4c";

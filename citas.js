@@ -71,6 +71,40 @@ async function obtenerDisponibilidad(diasHaciaAdelante = 14) {
   });
 }
 
+// Cuánto dura la consulta de un trámite. Es la misma regla del panel y del
+// servidor (que es el que manda): 1 hora para Iniciar Proceso, perdón
+// migratorio, residencia y ciudadanía; 30 minutos para lo demás.
+function duracionDelTramite(servicioId, ...textos) {
+  if (servicioId === "proceso") return 60;
+  return /perd[oó]n|residencia|ciudadan[ií]a|petici[oó]n|te pidi[oó]/i.test(textos.filter(Boolean).join(" ")) ? 60 : 30;
+}
+
+// El horario general del equipo: solo días y horas, sin nombres.
+async function obtenerHorariosWeb(duracion) {
+  return llamarRPC("visas_web_horarios", { p_duracion: duracion });
+}
+
+// Pide un horario. No queda agendado hasta que el equipo verifica el pago.
+async function solicitarCitaWeb(datos) {
+  return llamarRPC("visas_web_solicitar", {
+    p_nombre: datos.nombre,
+    p_telefono: datos.telefono,
+    p_pais_id: datos.paisId,
+    p_pais_nombre: datos.paisNombre,
+    p_categoria_id: datos.categoriaId,
+    p_categoria_nombre: datos.categoriaNombre,
+    p_caso_id: datos.casoId,
+    p_caso_nombre: datos.casoNombre,
+    p_fecha: datos.fecha,
+    p_hora: datos.hora,
+    p_tipo_servicio: datos.tipoServicio,
+    p_etapa: datos.etapa ?? null,
+    p_datos_caso: datos.datosCaso ?? null,
+    p_email: null,
+    p_perfil: datos.perfil ?? null,
+  });
+}
+
 async function crearCita(datos) {
   if (MODO_DEMO_PUBLICA) {
     return { ok: true, token: "demo-publica", id: "demo-publica" };
