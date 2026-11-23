@@ -10,14 +10,14 @@
   --tinta-suave: #1b2024;
   --crema: #f7f5f0;
   --blanco: #ffffff;
-  --petroleo: #064b49;
-  --petroleo-oscuro: #033a39;
-  --azul: #3767ea;
+  --petroleo: #1c2149;   /* azul marino del logo (antes era un verde petróleo) */
+  --petroleo-oscuro: #141836;
+  --azul: #2b3a8c;
   --gris: #62676a;
   --gris-claro: #dddeda;
-  --acento: #e86a55;
-  --acento-oscuro: #a83d2f;
-  --acento-accion: #c44b39;
+  --acento: #e03a40;     /* rojo del logo, en la versión que se lee sobre oscuro */
+  --acento-oscuro: #8a0f15;
+  --acento-accion: #b3141c;   /* rojo puro del logo: el color de los botones */
   --serif: "Fraunces", Georgia, "Times New Roman", serif;
   --sans: "Manrope", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
   --radio: 8px;
@@ -333,9 +333,15 @@ h1[tabindex="-1"]:focus {
 
 /* ---------- landing: equipo ---------- */
 
+/* La foto del equipo es vertical. Antes llenaba una franja ancha y quedaba
+   recortada a las caras; ahora va en su propio marco vertical, con aire. */
 .equipo {
   display: grid;
-  grid-template-columns: minmax(320px, 0.9fr) minmax(520px, 1.3fr);
+  grid-template-columns: minmax(320px, 1fr) minmax(300px, 0.78fr);
+  align-items: center;
+  gap: 48px 6vw;
+  /* Mismo margen izquierdo que el resto de las secciones (ancho de 1240px). */
+  padding: 96px max(7vw, calc((100% - 1240px) / 2));
   background: var(--blanco);
   scroll-margin-top: 72px;
 }
@@ -344,7 +350,8 @@ h1[tabindex="-1"]:focus {
   display: flex;
   flex-direction: column;
   justify-content: center;
-  padding: 80px 7vw;
+  width: 100%;
+  max-width: 560px;
 }
 
 .equipo-copy h2 {
@@ -358,8 +365,20 @@ h1[tabindex="-1"]:focus {
 
 .equipo-copy > p:last-child { max-width: 540px; margin: 0; color: var(--gris); font-size: 15px; line-height: 1.75; }
 
-.equipo-foto { position: relative; min-height: 560px; margin: 0; overflow: hidden; background: var(--tinta-suave); }
-.equipo-foto img { width: 100%; height: 100%; position: absolute; inset: 0; object-fit: cover; object-position: 50% 22%; }
+.equipo-foto {
+  position: relative;
+  justify-self: center;
+  width: 100%;
+  max-width: 500px;
+  aspect-ratio: 4 / 5;
+  margin: 0;
+  overflow: hidden;
+  border-radius: 18px;
+  background: var(--tinta-suave);
+  /* Un bloque de color asomando por detrás, para que no flote en el blanco. */
+  box-shadow: 18px 18px 0 #ebe6da;
+}
+.equipo-foto img { width: 100%; height: 100%; position: absolute; inset: 0; object-fit: cover; object-position: 50% 28%; }
 /* ---------- landing: personas del equipo ---------- */
 
 .seccion-personas { border-top: 1px solid var(--gris-claro); background: var(--crema); }
@@ -367,6 +386,13 @@ h1[tabindex="-1"]:focus {
 .persona { margin: 0; }
 .persona-foto { aspect-ratio: 4 / 5; margin: 0 0 18px; overflow: hidden; border-radius: var(--radio); background: var(--tinta-suave); }
 .persona-foto img { display: block; width: 100%; height: 100%; object-fit: cover; object-position: 50% 30%; }
+/* Mismo encuadre para los tres: los ojos a la misma altura, la cara centrada
+   y del mismo tamaño. Las fotos se tomaron a distancias distintas, así que
+   cada una lleva su ajuste (calculado con la posición de la cara en la foto). */
+.persona-foto img { transform-origin: 0 0; }
+.persona:nth-child(1) .persona-foto img { transform: translate(-9.78%, -11.88%) scale(1.2855); }
+.persona:nth-child(2) .persona-foto img { transform: translate(-5.14%, -0.68%) scale(1.0763); }
+.persona:nth-child(3) .persona-foto img { transform: translate(-8.08%, -2.42%) scale(1.1146); }
 .persona-nombre { margin: 0 0 4px; font-family: var(--serif); font-size: 24px; font-weight: 600; line-height: 1.15; }
 .persona-cargo { margin: 0; color: var(--gris); font-size: 14px; }
 
@@ -433,7 +459,7 @@ h1[tabindex="-1"]:focus {
   text-transform: none;
 }
 
-.precio-badge-azul { background: #e8efff; color: #2452ca; }
+.precio-badge-azul { background: #e6e8f4; color: #1c2149; }
 
 .precio-nombre {
   margin: 0 0 8px;
@@ -592,9 +618,9 @@ h1[tabindex="-1"]:focus {
   .confianza-item:nth-child(2) { border-right: 0; }
   .confianza-item:nth-child(-n + 2) { border-bottom: 1px solid var(--gris-claro); }
   .pasos-horizontales .paso { padding: 4px 28px 0; }
-  .equipo { grid-template-columns: 1fr; }
-  .equipo-copy { padding: 72px 7vw; }
-  .equipo-foto { min-height: 520px; }
+  .equipo { grid-template-columns: 1fr; padding: 72px 7vw; }
+  .equipo-copy { justify-self: start; max-width: 640px; }
+  .equipo-foto { justify-self: center; max-width: 460px; }
   .precios { grid-template-columns: 1fr; max-width: 680px; margin: 0 auto; }
   .escala-servicios { display: none; }
   .precios-nota, .gratis-banda { max-width: 680px; margin-left: auto; margin-right: auto; }
@@ -648,9 +674,10 @@ h1[tabindex="-1"]:focus {
   .pasos-horizontales .paso:first-child { padding-top: 0; }
   .pasos-horizontales .paso:last-child { border-bottom: 0; }
   .paso-cabecera { margin-bottom: 14px; }
-  .equipo-copy { padding: 64px 20px; }
+  .equipo { padding: 64px 20px 76px; gap: 36px; }
   .equipo-copy h2 { font-size: 42px; }
-  .equipo-foto { min-height: 360px; }
+  /* El bloque de atrás se achica: a 18px se salía del margen del celular. */
+  .equipo-foto { max-width: none; width: calc(100% - 12px); justify-self: start; box-shadow: 12px 12px 0 #ebe6da; }
   /* Apiladas, las tres fotos empujaban los servicios casi dos pantallas
      hacia abajo: en celular van en carrusel y asoma la siguiente tarjeta. */
   .personas {
@@ -783,7 +810,7 @@ h1[tabindex="-1"]:focus {
 .btn-primary {
   display: block;
   width: 100%;
-  background: var(--acento);
+  background: var(--acento-accion);
   color: var(--blanco);
   border: none;
   border-radius: 999px;
@@ -1189,4 +1216,77 @@ h1[tabindex="-1"]:focus {
 
 @media (max-width: 760px) {
   .intro-headline { font-size: 36px; }
+}
+
+/* =====================================================================
+   Página de inicio — puesta a punto (23 nov 2026)
+   Logo en la barra, colores del logo, servicios sin hueco, cierre con la
+   marca, letra legible en celular y un mismo margen para toda la página.
+   ===================================================================== */
+
+/* ---- logo: emblema + nombre ---- */
+.barra-marca { display: inline-flex; align-items: center; gap: 10px; }
+.barra-emblema { display: block; width: auto; height: 46px; flex: none; }
+.pie-landing .barra-emblema { height: 40px; }
+
+/* ---- un solo margen: todo arranca donde arrancan las secciones (1240px) ---- */
+.landing { --margen: max(5vw, calc((100% - 1240px) / 2)); }
+.landing .hero { padding-left: var(--margen); padding-right: var(--margen); }
+.landing .barra-landing { padding-left: var(--margen); padding-right: var(--margen); }
+.landing .cierre { padding-left: var(--margen); padding-right: var(--margen); }
+.landing .pie-landing { padding-left: var(--margen); padding-right: var(--margen); }
+.landing .confianza { padding-left: var(--margen); padding-right: var(--margen); }
+
+/* ---- cierre: rojo de la marca en vez del azul que no era de aquí ---- */
+.cierre { background: var(--acento-accion); }
+.cierre-kicker { color: rgba(255, 255, 255, 0.82); }
+.cierre p:last-child { font-size: 15px; color: rgba(255, 255, 255, 0.92); }
+.cierre-enlace { color: var(--blanco); font-weight: 700; text-underline-offset: 3px; }
+.btn-cierre { font-size: 15px; }
+
+/* ---- letra: nada de texto para leer por debajo de 13px ---- */
+.hero-nota { font-size: 13.5px; }
+.precios-nota { font-size: 13px; line-height: 1.55; color: rgba(255, 255, 255, 0.74); }
+.faq-respuesta { font-size: 14.5px; }
+.pie { font-size: 13.5px; }
+.pie-enlaces a { font-size: 13.5px; }
+.escala-servicios { font-size: 12.5px; }
+.precio-badge { font-size: 11.5px; }
+
+/* ---- servicios: la evaluación gratis ocupa la tercera columna ---- */
+@media (min-width: 1101px) {
+  .seccion-servicios .contenedor {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) minmax(0, 0.82fr);
+    column-gap: 18px;
+  }
+  .seccion-servicios .seccion-kicker,
+  .seccion-servicios .seccion-titulo,
+  .seccion-servicios .servicios-intro { grid-column: 1 / -1; }
+  .seccion-servicios .precios-dos { grid-column: 1 / 3; grid-row: 4; max-width: none; margin: 0; }
+  .seccion-servicios .gratis-banda {
+    grid-column: 3; grid-row: 4;
+    flex-direction: column; align-items: flex-start; justify-content: space-between;
+    max-width: none; margin: 0; padding: 30px 28px;
+  }
+  .seccion-servicios .gratis-banda-cta { width: 100%; }
+  .seccion-servicios .escala-servicios { grid-column: 1 / 3; grid-row: 5; max-width: none; }
+  .seccion-servicios .precios-nota { grid-column: 1 / 3; grid-row: 6; max-width: none; }
+}
+
+@media (max-width: 980px) {
+  .barra-emblema { height: 34px; }
+  .landing .barra .barra-marca { gap: 8px; }
+  .landing .hero { padding-left: 20px; padding-right: 20px; }
+  .hero-eyebrow { font-size: 11.5px; }
+  .seccion-kicker { font-size: 12.5px; }
+  .paso-detalle { font-size: 15px; }
+  .precios-nota { font-size: 13px; text-align: left; }
+  .landing .barra .barra-cta { min-height: 42px; font-size: 13px; padding: 9px 12px; }
+}
+
+@media (max-width: 420px) {
+  /* En celulares angostos el nombre no cabe junto al botón: queda el emblema. */
+  .landing .barra-landing .barra-marca span { display: none; }
+  .landing .barra-landing .barra-emblema { height: 40px; }
 }

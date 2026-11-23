@@ -14,20 +14,20 @@
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,600;9..144,700&family=Manrope:wght@400;500;600;700&display=swap" />
-  <link rel="stylesheet" href="estilo-marca.css?v=840b5c7" />
+  <link rel="stylesheet" href="estilo-marca.css?v=620b0fe" />
 </head>
 <body class="landing">
 
   <header class="hero" id="inicio">
     <nav class="barra barra-landing" aria-label="Navegación principal">
-      <a class="barra-marca" href="#inicio">Tu Viaje Legal 360</a>
+      <a class="barra-marca" href="#inicio"><img class="barra-emblema" src="assets/emblema-claro.png" alt="" width="240" height="232" /><span>Tu Viaje Legal 360</span></a>
       <div class="barra-menu">
         <a href="#servicios">Servicios</a>
         <a href="#como-funciona">Cómo funciona</a>
         <a href="#equipo">Equipo</a>
         <a href="#preguntas">Preguntas</a>
       </div>
-      <a class="barra-cta" href="evaluacion.html">Evaluación B1/B2 gratis</a>
+      <a class="barra-cta" href="agendar.html?servicio=orientacion">Agendar consulta</a>
     </nav>
 
     <div class="hero-foto" aria-hidden="true"></div>
@@ -39,10 +39,10 @@
         definimos contigo la mejor ruta y te acompañamos de verdad.
       </p>
       <div class="hero-acciones">
-        <a class="btn-acento" href="evaluacion.html">Evaluar mi perfil B1/B2 gratis</a>
-        <a class="btn-fantasma" href="#servicios">Ver servicios</a>
+        <a class="btn-acento" href="agendar.html?servicio=orientacion">Agendar mi consulta</a>
+        <a class="btn-fantasma" href="evaluacion.html">Evaluar mi perfil B1/B2 gratis</a>
       </div>
-      <p class="hero-nota">La evaluación gratuita es para visa B1/B2 de Estados Unidos y toma 2 minutos. Para otros trámites, ve directo a servicios.</p>
+      <p class="hero-nota">Eliges tu horario en un minuto y la consulta es por videollamada. Si buscas visa B1/B2, la evaluación gratis toma 2 minutos.</p>
     </div>
   </header>
 
@@ -82,18 +82,18 @@
           <article class="paso">
             <div class="paso-cabecera">
               <span class="paso-numero">2</span>
-              <i data-lucide="sliders-horizontal" aria-hidden="true"></i>
+              <i data-lucide="calendar-check" aria-hidden="true"></i>
             </div>
-            <h3 class="paso-titulo">Elige cómo quieres trabajar</h3>
-            <p class="paso-detalle">Selecciona el nivel de ayuda que necesitas.</p>
+            <h3 class="paso-titulo">Elige tu día y tu hora</h3>
+            <p class="paso-detalle">Escoge un horario libre y apártalo en un minuto. La consulta es por videollamada, desde donde estés.</p>
           </article>
           <article class="paso">
             <div class="paso-cabecera">
               <span class="paso-numero">3</span>
-              <i data-lucide="send" aria-hidden="true"></i>
+              <i data-lucide="badge-check" aria-hidden="true"></i>
             </div>
-            <h3 class="paso-titulo">Avanza con tranquilidad</h3>
-            <p class="paso-detalle">Recibe los pasos claros y el acompañamiento correcto.</p>
+            <h3 class="paso-titulo">Paga y recibe tu confirmación</h3>
+            <p class="paso-detalle">Pagas por transferencia, nos envías el comprobante por WhatsApp y te confirmamos la cita.</p>
           </article>
         </div>
       </div>
@@ -187,7 +187,7 @@
           <div></div>
           <span>Más acompañamiento</span>
         </div>
-        <p class="precios-nota">Te damos el precio exacto según tu caso antes de agendar. Las tarifas oficiales del consulado se pagan aparte.</p>
+        <p class="precios-nota">Ves el monto al apartar tu horario, antes de pagar. Si después haces el proceso completo, lo que pagaste por la consulta se descuenta. Las tarifas oficiales del consulado se pagan aparte.</p>
 
         <div class="gratis-banda">
           <div class="gratis-banda-texto">
@@ -229,7 +229,7 @@
           </details>
           <details>
             <summary>¿Puedo hacer el proceso desde cualquier lugar?</summary>
-            <p class="faq-respuesta">Sí. La evaluación es en línea y tu consulta con el asesor puede ser virtual. Los pasos presenciales dependen del trámite elegido.</p>
+            <p class="faq-respuesta">Sí. La evaluación es en línea y tu consulta con el asesor es por videollamada. Los pasos presenciales dependen del trámite elegido.</p>
           </details>
           <details>
             <summary>¿Mi información se mantiene confidencial?</summary>
@@ -237,7 +237,11 @@
           </details>
           <details>
             <summary>¿Cuándo veré el precio de mi caso?</summary>
-            <p class="faq-respuesta">Cada servicio tiene su propio precio según el trámite. Te lo confirmamos antes de agendar, para que sepas exactamente cuánto pagas.</p>
+            <p class="faq-respuesta">Lo ves al apartar tu horario, antes de pagar nada. En algunos trámites el precio depende de tu situación y te lo confirmamos por WhatsApp. Si después haces el proceso completo, lo que pagaste por la consulta se descuenta.</p>
+          </details>
+          <details>
+            <summary>¿Cómo se paga?</summary>
+            <p class="faq-respuesta">Por transferencia bancaria. Nos envías el comprobante por WhatsApp y te confirmamos la cita. Los pagos no tienen devolución, pero puedes reprogramar tu cita hasta 3 meses después.</p>
           </details>
         </div>
       </div>
@@ -247,15 +251,15 @@
       <div>
         <p class="cierre-kicker">Tu primer paso</p>
         <h2>No dejes tu viaje al azar. Empieza hoy con el pie derecho.</h2>
-        <p>Tarda menos de 2 minutos evaluar tu perfil y conocer tu mejor punto de partida.</p>
+        <p>Aparta tu consulta en un minuto. ¿Visa B1/B2? <a class="cierre-enlace" href="evaluacion.html">Evalúa tu perfil gratis</a>.</p>
       </div>
-      <a class="btn-cierre" href="evaluacion.html">Evaluar mi perfil ahora</a>
+      <a class="btn-cierre" href="agendar.html?servicio=orientacion">Agendar mi consulta</a>
     </section>
   </main>
 
   <footer class="pie pie-landing">
     <div class="pie-marca">
-      <a class="barra-marca" href="#inicio">Tu Viaje Legal 360</a>
+      <a class="barra-marca" href="#inicio"><img class="barra-emblema" src="assets/emblema-claro.png" alt="" width="240" height="232" /><span>Tu Viaje Legal 360</span></a>
       <p>Te acompañamos con claridad en tu proceso migratorio.</p>
       <a class="pie-contacto" id="pie-whatsapp" href="#servicios" hidden>Escríbenos por WhatsApp</a>
     </div>
@@ -274,8 +278,8 @@
   <script src="https://unpkg.com/lucide@0.468.0/dist/umd/lucide.min.js"></script>
   <!-- En la demo pública este archivo es config.demo.js, que marca
        DEMO_PUBLICA. Sirve para avisar que todavía no se agendan citas reales. -->
-  <script src="config.js?v=840b5c7"></script>
-  <script src="analitica.js?v=840b5c7"></script>
-  <script src="landing.js?v=840b5c7"></script>
+  <script src="config.js?v=620b0fe"></script>
+  <script src="analitica.js?v=620b0fe"></script>
+  <script src="landing.js?v=620b0fe"></script>
 </body>
 </html>
