@@ -980,6 +980,7 @@ function pantallaSolicitar(c) {
         perfil: estado.perfilQuiz,
       });
       if (resultado.ok) {
+        await avisarSolicitudAlEquipo(resultado.token);
         window.location.href = `mi-cita.html?token=${encodeURIComponent(resultado.token)}`;
         return;
       }

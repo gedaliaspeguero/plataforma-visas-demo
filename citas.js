@@ -105,6 +105,20 @@ async function solicitarCitaWeb(datos) {
   });
 }
 
+// Le avisa por correo al equipo que entró una solicitud. Es un extra: si
+// falla o tarda, el cliente sigue igual a su página de pago (keepalive deja
+// que el aviso termine aunque la página ya haya cambiado).
+async function avisarSolicitudAlEquipo(token) {
+  const aviso = fetch(`${SUPABASE_FUNCTIONS_URL}/visas-notificar-solicitud`, {
+    method: "POST",
+    keepalive: true,
+    headers: { apikey: SUPABASE_ANON_KEY, Authorization: `Bearer ${SUPABASE_ANON_KEY}`, "Content-Type": "application/json" },
+    body: JSON.stringify({ token }),
+  }).catch((e) => console.warn("No se pudo avisar al equipo por correo:", e));
+  // Se espera un momento, no más: el cliente no tiene por qué quedarse mirando.
+  await Promise.race([aviso, new Promise((listo) => setTimeout(listo, 3500))]);
+}
+
 async function crearCita(datos) {
   if (MODO_DEMO_PUBLICA) {
     return { ok: true, token: "demo-publica", id: "demo-publica" };
