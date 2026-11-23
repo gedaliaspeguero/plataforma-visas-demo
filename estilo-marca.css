@@ -159,7 +159,9 @@ h1[tabindex="-1"]:focus {
   inset: 0;
   z-index: 0;
   background-image: url("assets/hero-consulta.jpg");
-  background-position: center;
+  /* Pegada arriba: centrada, en pantallas anchas se recortaba la cabeza de
+     la asesora que está de pie. Lo que sobre se corta por abajo (el escritorio). */
+  background-position: center top;
   background-size: cover;
 }
 
