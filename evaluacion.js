@@ -83,6 +83,76 @@ const backBtn = document.getElementById("backBtn");
 
 document.getElementById("footerDisclaimer").textContent = TEXTOS.FOOTER_DISCLAIMER;
 
+// ---------- El cielo y el avioncito (la parte divertida) ----------
+
+const MENOS_MOVIMIENTO = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+const COLORES_FIESTA = ["#7ef0ff", "#a78bff", "#ff8fd2", "#8affc8", "#ffd166", "#ff5a5f"];
+const progresoAvion = document.getElementById("progresoAvion");
+progresoAvion.innerHTML = Avioncito.svg({ halo: false });
+
+function escapar(texto) {
+  return String(texto ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+}
+
+// Estrellas y nubes repartidas al azar: cada visita el cielo es distinto.
+(function pintarCielo() {
+  const cielo = document.getElementById("estrellas");
+  if (!cielo) return;
+  let html = "";
+  for (let i = 0; i < 46; i++) {
+    const tam = (1.5 + Math.random() * 2.5).toFixed(1);
+    html += `<span class="estrella" style="left:${(Math.random() * 100).toFixed(2)}%;top:${(Math.random() * 100).toFixed(2)}%;width:${tam}px;height:${tam}px;animation-delay:${(Math.random() * 3).toFixed(2)}s;animation-duration:${(2.2 + Math.random() * 2.6).toFixed(2)}s"></span>`;
+  }
+  for (let i = 0; i < 3; i++) {
+    html += `<span class="nube" style="top:${12 + i * 28}%;width:${110 + i * 40}px;animation-duration:${38 + i * 14}s;animation-delay:-${i * 15}s"></span>`;
+  }
+  cielo.innerHTML = html;
+})();
+
+// El avioncito que acompaña: entra volando, flota y dice algo.
+function guia(texto, expresion = "feliz", grande = false) {
+  return `
+    <div class="guia${grande ? " guia-grande" : ""}">
+      <div class="guia-avion av-entrando"><div class="av-flotando">${Avioncito.conEstela({ expresion })}</div></div>
+      ${texto ? `<p class="globo">${texto}</p>` : ""}
+    </div>`;
+}
+
+// Chispitas de colores donde la persona tocó.
+function chispas(x, y, cantidad = 12) {
+  if (MENOS_MOVIMIENTO) return;
+  for (let i = 0; i < cantidad; i++) {
+    const c = document.createElement("span");
+    const angulo = (Math.PI * 2 * i) / cantidad + Math.random() * 0.5;
+    const distancia = 40 + Math.random() * 50;
+    c.className = "chispa";
+    c.style.left = `${x - 4}px`;
+    c.style.top = `${y - 4}px`;
+    c.style.background = COLORES_FIESTA[i % COLORES_FIESTA.length];
+    c.style.setProperty("--dx", `${Math.cos(angulo) * distancia}px`);
+    c.style.setProperty("--dy", `${Math.sin(angulo) * distancia}px`);
+    document.body.appendChild(c);
+    setTimeout(() => c.remove(), 700);
+  }
+}
+
+function confeti(cantidad) {
+  if (MENOS_MOVIMIENTO) return;
+  for (let i = 0; i < cantidad; i++) {
+    const c = document.createElement("span");
+    const dura = 2.2 + Math.random() * 1.8;
+    c.className = "confeti";
+    c.style.left = `${Math.random() * 100}vw`;
+    c.style.background = COLORES_FIESTA[i % COLORES_FIESTA.length];
+    c.style.animationDuration = `${dura}s`;
+    c.style.animationDelay = `${Math.random() * 0.6}s`;
+    c.style.setProperty("--dx", `${(Math.random() - 0.5) * 160}px`);
+    c.style.setProperty("--giro", `${360 + Math.random() * 720}deg`);
+    document.body.appendChild(c);
+    setTimeout(() => c.remove(), (dura + 0.8) * 1000);
+  }
+}
+
 backBtn.addEventListener("click", goBack);
 
 function goBack() {
@@ -124,6 +194,7 @@ function render() {
   if (state.step === "intro") stage.appendChild(renderIntro());
   else if (state.step === "question") stage.appendChild(renderQuestion());
   else if (state.step === "name") stage.appendChild(renderNameCapture());
+  else if (state.step === "revisando") stage.appendChild(renderRevisando());
   else if (state.step === "result") stage.appendChild(renderResult());
 
   window.scrollTo(0, 0);
@@ -136,17 +207,29 @@ function render() {
   });
 }
 
+function moverAvionDelProgreso(pct) {
+  const antes = progresoAvion.style.left;
+  progresoAvion.style.left = `${pct}%`;
+  if (antes && antes !== progresoAvion.style.left) {
+    progresoAvion.classList.remove("saltando");
+    void progresoAvion.offsetWidth;
+    progresoAvion.classList.add("saltando");
+  }
+}
+
 function updateProgressHeader() {
   if (state.step === "question") {
     progressHeader.hidden = false;
     const pct = ((state.questionIndex + 1) / (state.flow.length + 1)) * 100;
     progressFill.style.width = `${pct}%`;
+    moverAvionDelProgreso(pct);
     progressTrack.setAttribute("aria-valuenow", String(state.questionIndex + 1));
     progressTrack.setAttribute("aria-valuemax", String(state.flow.length + 1));
     backBtn.style.visibility = "visible";
   } else if (state.step === "name") {
     progressHeader.hidden = false;
     progressFill.style.width = "100%";
+    moverAvionDelProgreso(100);
     progressTrack.setAttribute("aria-valuenow", String(state.flow.length + 1));
     progressTrack.setAttribute("aria-valuemax", String(state.flow.length + 1));
     backBtn.style.visibility = "visible";
@@ -161,11 +244,12 @@ function renderIntro() {
   el.className = "screen";
   const t = TEXTOS.INTRO;
   el.innerHTML = `
+    ${guia("¡Hola! Soy tu copiloto. Son 2 minutitos y despegamos.", "feliz", true)}
     <p class="intro-eyebrow">${t.eyebrow}</p>
     <h1 class="intro-headline">${t.headline}</h1>
     <div class="intro-stat-card">${t.stat}</div>
     <p class="intro-sub">${t.sub}</p>
-    <button class="btn-primary" id="startBtn">${t.ctaStart}</button>
+    <button class="btn-primary btn-estrella" id="startBtn">${t.ctaStart}</button>
   `;
   el.querySelector("#startBtn").addEventListener("click", () => {
     transitionTo(() => {
@@ -208,7 +292,9 @@ function renderQuestion() {
     if (q.type === "multi") card.setAttribute("aria-pressed", isSelected ? "true" : "false");
     card.innerHTML = `<span>${opt.label}</span><span class="option-check">✓</span>`;
 
-    card.addEventListener("click", () => {
+    card.addEventListener("click", (evento) => {
+      const caja = card.getBoundingClientRect();
+      chispas(evento.clientX || caja.left + caja.width / 2, evento.clientY || caja.top + caja.height / 2);
       if (q.type === "multi") {
         handleMultiSelect(q, opt, card, list);
       } else {
@@ -297,10 +383,11 @@ function renderNameCapture() {
   el.className = "screen";
   const t = TEXTOS.NAME_CAPTURE;
   el.innerHTML = `
+    ${guia("¡Ya casi aterrizamos!", "guino")}
     <h2 class="question-text">${t.headline}</h2>
     <p class="intro-sub" style="margin-bottom:20px;">${t.sub}</p>
     <label class="campo-etiqueta" for="nameInput">Tu nombre <span>(opcional)</span></label>
-    <input type="text" class="name-input" id="nameInput" placeholder="${t.placeholder}" value="${state.userName}" autocomplete="name" />
+    <input type="text" class="name-input" id="nameInput" placeholder="${t.placeholder}" value="${escapar(state.userName)}" autocomplete="name" maxlength="60" />
     <button class="btn-primary" id="nameContinueBtn">${t.ctaContinue}</button>
     <button class="skip-btn" id="nameSkipBtn">${t.ctaSkip}</button>
   `;
@@ -308,13 +395,39 @@ function renderNameCapture() {
   const input = el.querySelector("#nameInput");
   el.querySelector("#nameContinueBtn").addEventListener("click", () => {
     state.userName = input.value.trim();
-    transitionTo(() => { state.step = "result"; ensureCaseNumber(); });
+    irAlResultado();
   });
   el.querySelector("#nameSkipBtn").addEventListener("click", () => {
     state.userName = "";
-    transitionTo(() => { state.step = "result"; ensureCaseNumber(); });
+    irAlResultado();
   });
 
+  return el;
+}
+
+// ---------- Revisando: el avioncito da una vuelta mientras "calcula" ----------
+function irAlResultado() {
+  transitionTo(() => {
+    ensureCaseNumber();
+    state.step = MENOS_MOVIMIENTO ? "result" : "revisando";
+  });
+  if (MENOS_MOVIMIENTO) return;
+  setTimeout(() => {
+    if (state.step !== "revisando") return;
+    state.step = "result";
+    render();
+  }, 2100);
+}
+
+function renderRevisando() {
+  const el = document.createElement("div");
+  el.className = "screen revisando";
+  el.innerHTML = `
+    <div class="revisando-pista" aria-hidden="true">
+      <div class="revisando-giro">${Avioncito.conEstela({ expresion: "pensando", halo: false })}</div>
+    </div>
+    <p role="status">Revisando tus respuestas<span>.</span><span>.</span><span>.</span></p>
+  `;
   return el;
 }
 
@@ -340,13 +453,25 @@ function renderResult() {
     })
     .join("");
 
+  const expresion = { fuerte: "feliz", medio: "guino", riesgo: "pensando" }[result.band] || "feliz";
   el.innerHTML = `
-    <p class="question-pillar">Tu resultado</p>
-    <p class="case-number">Referencia de evaluación #${state.caseNumber}</p>
-    <h2 class="result-band ${result.band}">${t.bandLabels[result.band]}</h2>
-    <p class="result-tagline">${t.bandTaglines[result.band]}</p>
-    <div class="pillars-chart">${pillarRows}</div>
-    <div class="risk-card">${t.nextStep}</div>
+    <div class="resultado-avion av-entrando"><div class="av-flotando">${Avioncito.conEstela({ expresion })}</div></div>
+    <article class="pase">
+      <div class="pase-cabeza"><strong>Pase de evaluación</strong><span>Tu Viaje Legal 360</span></div>
+      <div class="pase-datos">
+        <div class="pase-dato"><small>Pasajero</small><b>${escapar(state.userName) || "Viajero"}</b></div>
+        <div class="pase-dato"><small>Referencia</small><b>#${state.caseNumber}</b></div>
+        <div class="pase-dato"><small>Destino</small><b>Estados Unidos</b></div>
+        <div class="pase-dato"><small>Visa</small><b>B1/B2</b></div>
+      </div>
+      <div class="pase-corte" aria-hidden="true"><i></i><i></i></div>
+      <div class="pase-cuerpo">
+        <h2 class="result-band ${result.band}">${t.bandLabels[result.band]}</h2>
+        <p class="result-tagline">${t.bandTaglines[result.band]}</p>
+        <div class="pillars-chart">${pillarRows}</div>
+        <div class="risk-card">${t.nextStep}</div>
+      </div>
+    </article>
     <div class="result-actions">
       ${MODO_WHATSAPP
         ? `<button class="btn-primary" id="whatsappBtn">${t.ctaWhatsappPrincipal}</button>`
@@ -359,6 +484,10 @@ function renderResult() {
   el.querySelector("#agendarBtn")?.addEventListener("click", () => irAAgendar(result));
   el.querySelector("#whatsappBtn").addEventListener("click", () => openWhatsapp(result));
   el.querySelector("#shareBtn").addEventListener("click", shareTest);
+
+  // Fiesta al llegar: más confeti mientras mejor salió.
+  const cantidad = { fuerte: 90, medio: 45, riesgo: 0 }[result.band] || 0;
+  if (cantidad) setTimeout(() => confeti(cantidad), 500);
 
   return el;
 }

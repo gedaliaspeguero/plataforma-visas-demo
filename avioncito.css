@@ -1,0 +1,425 @@
+/* avioncito.css — la página del test, con la mascota de los videos.
+   Cielo de noche azul marino con estrellas y auroras de colores (el mismo
+   mundo de los reels), el avioncito guiando cada paso y el resultado como un
+   pase de abordaje. Todo se apaga si la persona pidió menos movimiento. */
+
+/* ---------- el avioncito ---------- */
+
+.avioncito { display: block; width: 100%; height: auto; overflow: visible; }
+
+.av-helice {
+  transform-box: fill-box;
+  transform-origin: center;
+  animation: av-helice 0.14s linear infinite;
+}
+@keyframes av-helice {
+  0% { transform: scaleY(1); }
+  50% { transform: scaleY(-1); }
+  100% { transform: scaleY(1); }
+}
+
+/* Parpadea cada 3.4 s, como en los videos. */
+.av-ojo {
+  transform-box: fill-box;
+  transform-origin: center;
+  animation: av-parpadeo 3.4s infinite;
+}
+@keyframes av-parpadeo {
+  0%, 92%, 100% { transform: scaleY(1); }
+  95% { transform: scaleY(0.1); }
+}
+
+.avion-conjunto { position: relative; display: block; }
+.avion-conjunto .avioncito { position: relative; z-index: 1; }
+
+/* Estela de colores saliendo de la cola. */
+.avion-estela {
+  position: absolute;
+  z-index: 0;
+  right: 76%;
+  top: 44%;
+  width: 120%;
+  height: 16%;
+  border-radius: 999px;
+  background: linear-gradient(to left, rgba(255, 255, 255, 0.95), #a78bff 25%, rgba(255, 143, 210, 0.5) 60%, rgba(126, 240, 255, 0));
+  filter: blur(5px);
+  transform-origin: right center;
+  animation: av-estela 1.4s ease-in-out infinite alternate;
+}
+@keyframes av-estela {
+  from { transform: scaleX(0.88) skewY(-2deg); opacity: 0.85; }
+  to { transform: scaleX(1) skewY(2deg); opacity: 1; }
+}
+
+/* Flota arriba y abajo. */
+.av-flotando { animation: av-flotar 3.2s ease-in-out infinite; }
+@keyframes av-flotar {
+  0%, 100% { transform: translateY(0) rotate(-3deg); }
+  50% { transform: translateY(-12px) rotate(2deg); }
+}
+
+/* Entra volando desde la izquierda. */
+.av-entrando { animation: av-entrar 1.1s cubic-bezier(0.2, 0.9, 0.25, 1.15) both; }
+@keyframes av-entrar {
+  from { transform: translate(-120vw, 60px) rotate(12deg); }
+  70% { transform: translate(10px, -6px) rotate(-6deg); }
+  to { transform: none; }
+}
+
+/* ---------- el cielo ---------- */
+
+body.quiz-cielo {
+  min-height: 100vh;
+  background: #11153a;
+  color: var(--blanco);
+  overflow-x: hidden;
+}
+
+.cielo {
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  overflow: hidden;
+  pointer-events: none;
+  background: radial-gradient(120% 80% at 50% 0%, #2a2f6e 0%, #161a45 45%, #0b0d26 100%);
+}
+
+/* Auroras de colores que van y vienen. */
+.cielo::before,
+.cielo::after {
+  content: "";
+  position: absolute;
+  width: 70vmax;
+  height: 70vmax;
+  border-radius: 50%;
+  filter: blur(80px);
+  opacity: 0.35;
+}
+.cielo::before {
+  left: -25vmax;
+  top: -20vmax;
+  background: radial-gradient(circle, #7ef0ff, rgba(167, 139, 255, 0) 65%);
+  animation: aurora-a 18s ease-in-out infinite alternate;
+}
+.cielo::after {
+  right: -25vmax;
+  bottom: -30vmax;
+  background: radial-gradient(circle, #ff8fd2, rgba(167, 139, 255, 0) 65%);
+  animation: aurora-b 22s ease-in-out infinite alternate;
+}
+@keyframes aurora-a { to { transform: translate(18vw, 14vh) scale(1.15); } }
+@keyframes aurora-b { to { transform: translate(-16vw, -18vh) scale(1.2); } }
+
+.estrellas {
+  position: absolute;
+  inset: 0;
+}
+.estrella {
+  position: absolute;
+  width: 3px;
+  height: 3px;
+  border-radius: 50%;
+  background: #fff;
+  box-shadow: 0 0 6px rgba(255, 255, 255, 0.9);
+  animation: titilar 3s ease-in-out infinite;
+}
+@keyframes titilar {
+  0%, 100% { opacity: 0.25; transform: scale(0.8); }
+  50% { opacity: 1; transform: scale(1.2); }
+}
+
+/* Nubecitas que pasan despacio. */
+.nube {
+  position: absolute;
+  height: 26px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.08);
+  filter: blur(2px);
+  animation: nube-pasa linear infinite;
+}
+.nube::before,
+.nube::after {
+  content: "";
+  position: absolute;
+  bottom: 8px;
+  border-radius: 50%;
+  background: inherit;
+}
+.nube::before { left: 18%; width: 44%; height: 34px; }
+.nube::after { left: 48%; width: 34%; height: 26px; }
+@keyframes nube-pasa {
+  from { transform: translateX(-30vw); }
+  to { transform: translateX(130vw); }
+}
+
+body.quiz-cielo .barra,
+body.quiz-cielo .quiz-cuerpo,
+body.quiz-cielo .pie { position: relative; z-index: 1; }
+
+body.quiz-cielo .barra { background: rgba(11, 13, 38, 0.72); backdrop-filter: blur(8px); }
+body.quiz-cielo .pie { background: transparent; color: rgba(255, 255, 255, 0.55); }
+
+/* ---------- textos sobre el cielo ---------- */
+
+body.quiz-cielo .intro-eyebrow,
+body.quiz-cielo .question-pillar { color: #ffb4c8; }
+body.quiz-cielo .intro-headline,
+body.quiz-cielo .question-text { color: var(--blanco); }
+body.quiz-cielo .intro-sub,
+body.quiz-cielo .multi-hint { color: rgba(255, 255, 255, 0.78); }
+body.quiz-cielo .intro-stat-card {
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  background: rgba(255, 255, 255, 0.08);
+  backdrop-filter: blur(6px);
+}
+body.quiz-cielo .campo-etiqueta { color: var(--blanco); }
+body.quiz-cielo .campo-etiqueta span { color: rgba(255, 255, 255, 0.65); }
+body.quiz-cielo .skip-btn,
+body.quiz-cielo .share-btn { color: rgba(255, 255, 255, 0.75); }
+body.quiz-cielo .btn-atras { color: rgba(255, 255, 255, 0.8); }
+body.quiz-cielo .btn-secundario-quiz { border-color: rgba(255, 255, 255, 0.35); color: var(--blanco); }
+body.quiz-cielo .name-input { border-color: transparent; }
+
+/* ---------- el avioncito guía ---------- */
+
+.guia {
+  display: flex;
+  align-items: flex-end;
+  gap: 12px;
+  margin: 6px 0 18px;
+}
+.guia-avion { flex: none; width: 150px; }
+.guia-grande .guia-avion { width: 210px; }
+
+.globo {
+  position: relative;
+  margin-bottom: 26px;
+  padding: 11px 15px;
+  border-radius: 16px 16px 16px 4px;
+  background: var(--blanco);
+  color: var(--tinta);
+  font-size: 15px;
+  font-weight: 700;
+  line-height: 1.3;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.25);
+  animation: globo-sale 0.45s 0.6s cubic-bezier(0.2, 0.9, 0.3, 1.3) both;
+}
+@keyframes globo-sale {
+  from { opacity: 0; transform: scale(0.6) translateY(10px); transform-origin: left bottom; }
+  to { opacity: 1; transform: none; }
+}
+
+/* ---------- progreso: el avioncito vuela por la barra ---------- */
+
+body.quiz-cielo .progreso-quiz { padding-top: 22px; }
+body.quiz-cielo .progreso-pista {
+  position: relative;
+  overflow: visible;
+  height: 6px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.14);
+}
+body.quiz-cielo .progreso-relleno {
+  height: 100%;
+  border-radius: 999px;
+  background: linear-gradient(90deg, #7ef0ff, #a78bff, #ff8fd2);
+  box-shadow: 0 0 12px rgba(167, 139, 255, 0.7);
+  transition: width 0.5s cubic-bezier(0.3, 0.9, 0.3, 1);
+}
+.progreso-avion {
+  position: absolute;
+  top: 50%;
+  left: 0;
+  width: 52px;
+  margin: -21px 0 0 -40px;
+  transition: left 0.5s cubic-bezier(0.3, 0.9, 0.3, 1);
+  pointer-events: none;
+}
+.progreso-avion.saltando { animation: av-salto 0.5s ease; }
+@keyframes av-salto {
+  40% { transform: translateY(-10px) rotate(-12deg); }
+}
+
+/* ---------- respuestas ---------- */
+
+body.quiz-cielo .option-card {
+  border-color: transparent;
+  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.18);
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
+}
+body.quiz-cielo .option-card:hover { transform: translateY(-2px); box-shadow: 0 10px 24px rgba(0, 0, 0, 0.28); }
+body.quiz-cielo .option-card:active { transform: scale(0.98); }
+body.quiz-cielo .option-card.selected {
+  background: var(--blanco);
+  box-shadow: 0 0 0 3px #a78bff, 0 10px 26px rgba(167, 139, 255, 0.45);
+}
+
+/* Las preguntas llegan volando de la derecha. */
+body.quiz-cielo .screen { animation: pantalla-llega 0.35s cubic-bezier(0.2, 0.9, 0.3, 1) both; }
+body.quiz-cielo .screen.exiting { opacity: 0; transform: translateX(-30px); transition: all 0.15s ease; }
+@keyframes pantalla-llega {
+  from { opacity: 0; transform: translateX(34px); }
+  to { opacity: 1; transform: none; }
+}
+body.quiz-cielo .option-card { animation: tarjeta-llega 0.4s cubic-bezier(0.2, 0.9, 0.3, 1.2) both; }
+body.quiz-cielo .option-card:nth-child(2) { animation-delay: 0.05s; }
+body.quiz-cielo .option-card:nth-child(3) { animation-delay: 0.1s; }
+body.quiz-cielo .option-card:nth-child(4) { animation-delay: 0.15s; }
+body.quiz-cielo .option-card:nth-child(5) { animation-delay: 0.2s; }
+body.quiz-cielo .option-card:nth-child(n + 6) { animation-delay: 0.25s; }
+@keyframes tarjeta-llega {
+  from { opacity: 0; transform: translateY(14px) scale(0.97); }
+  to { opacity: 1; transform: none; }
+}
+
+/* Chispitas al tocar una respuesta. */
+.chispa {
+  position: fixed;
+  z-index: 50;
+  width: 8px;
+  height: 8px;
+  border-radius: 2px;
+  pointer-events: none;
+  animation: chispa-vuela 0.6s ease-out forwards;
+}
+@keyframes chispa-vuela {
+  from { opacity: 1; transform: translate(0, 0) rotate(0) scale(1); }
+  to { opacity: 0; transform: translate(var(--dx), var(--dy)) rotate(260deg) scale(0.4); }
+}
+
+/* ---------- revisando: el avioncito da una vuelta ---------- */
+
+.revisando {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 52vh;
+  text-align: center;
+}
+.revisando-pista { position: relative; width: 220px; height: 220px; }
+.revisando-pista::before {
+  content: "";
+  position: absolute;
+  inset: 18px;
+  border: 2px dashed rgba(255, 255, 255, 0.22);
+  border-radius: 50%;
+}
+.revisando-giro { position: absolute; inset: 0; animation: dar-vuelta 1.3s linear infinite; }
+.revisando-giro .avion-conjunto { position: absolute; top: -6px; left: 50%; width: 92px; margin-left: -46px; }
+@keyframes dar-vuelta { to { transform: rotate(360deg); } }
+.revisando p { margin: 18px 0 0; font-size: 17px; font-weight: 700; }
+.revisando p span { animation: puntitos 1.2s infinite; }
+.revisando p span:nth-child(2) { animation-delay: 0.2s; }
+.revisando p span:nth-child(3) { animation-delay: 0.4s; }
+@keyframes puntitos { 0%, 100% { opacity: 0.2; } 50% { opacity: 1; } }
+
+/* ---------- resultado: pase de abordaje ---------- */
+
+.resultado-avion { width: 190px; margin: 0 auto -18px; position: relative; z-index: 2; }
+
+.pase {
+  position: relative;
+  overflow: hidden;
+  border-radius: 20px;
+  background: var(--blanco);
+  color: var(--tinta);
+  box-shadow: 0 24px 60px rgba(0, 0, 0, 0.4);
+  animation: pase-sale 0.7s 0.2s cubic-bezier(0.2, 0.9, 0.3, 1.1) both;
+}
+@keyframes pase-sale {
+  from { opacity: 0; transform: translateY(40px) rotate(-2deg) scale(0.96); }
+  to { opacity: 1; transform: none; }
+}
+
+.pase-cabeza {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 16px 20px;
+  background: #1c2149;
+  color: var(--blanco);
+}
+.pase-cabeza strong { font-size: 12px; letter-spacing: 1.6px; text-transform: uppercase; }
+.pase-cabeza span { font-size: 12px; opacity: 0.75; }
+
+.pase-datos {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px 16px;
+  padding: 16px 20px 4px;
+}
+.pase-dato small { display: block; color: var(--gris); font-size: 11px; font-weight: 700; letter-spacing: 1.2px; text-transform: uppercase; }
+.pase-dato b { display: block; margin-top: 2px; font-size: 15px; overflow-wrap: anywhere; }
+
+/* Línea de "corte" con muescas, como un boleto. */
+.pase-corte {
+  position: relative;
+  height: 24px;
+  margin: 8px 0;
+}
+.pase-corte::before {
+  content: "";
+  position: absolute;
+  left: 20px;
+  right: 20px;
+  top: 50%;
+  border-top: 2px dashed #d9dbe6;
+}
+.pase-corte i {
+  position: absolute;
+  top: 0;
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  background: #11153a;
+}
+.pase-corte i:first-child { left: -12px; }
+.pase-corte i:last-child { right: -12px; }
+
+.pase-cuerpo { padding: 4px 20px 20px; }
+body.quiz-cielo .pase .result-band { margin-top: 4px; }
+body.quiz-cielo .pase .result-band.fuerte { color: #23763a; }
+body.quiz-cielo .pase .result-band.medio { color: #9c2a22; }
+body.quiz-cielo .pase .result-band.riesgo { color: #b3141c; }
+body.quiz-cielo .pase .result-tagline { color: var(--gris); }
+body.quiz-cielo .pase .pillar-summary { animation: tarjeta-llega 0.45s cubic-bezier(0.2, 0.9, 0.3, 1.2) both; }
+body.quiz-cielo .pase .pillar-summary:nth-child(1) { animation-delay: 0.7s; }
+body.quiz-cielo .pase .pillar-summary:nth-child(2) { animation-delay: 0.85s; }
+body.quiz-cielo .pase .pillar-summary:nth-child(3) { animation-delay: 1s; }
+body.quiz-cielo .pase .pillar-summary:nth-child(4) { animation-delay: 1.15s; }
+body.quiz-cielo .pase .risk-card { margin-bottom: 0; }
+
+body.quiz-cielo .result-actions { margin-top: 22px; }
+
+/* Confeti de colores al llegar al resultado. */
+.confeti {
+  position: fixed;
+  z-index: 60;
+  top: -14px;
+  width: 9px;
+  height: 14px;
+  border-radius: 2px;
+  pointer-events: none;
+  animation: confeti-cae linear forwards;
+}
+@keyframes confeti-cae {
+  to { transform: translate(var(--dx), 110vh) rotate(var(--giro)); }
+}
+
+@media (min-width: 700px) {
+  .guia-grande .guia-avion { width: 250px; }
+  .resultado-avion { width: 230px; }
+}
+
+/* ---------- menos movimiento ---------- */
+
+@media (prefers-reduced-motion: reduce) {
+  .av-helice, .av-ojo, .avion-estela, .av-flotando, .av-entrando,
+  .cielo::before, .cielo::after, .estrella, .nube, .globo,
+  body.quiz-cielo .screen, body.quiz-cielo .option-card, .revisando-giro,
+  .pase, body.quiz-cielo .pase .pillar-summary, .progreso-avion.saltando { animation: none !important; }
+  .chispa, .confeti { display: none; }
+  .nube { display: none; }
+}

@@ -14,13 +14,21 @@
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,600;9..144,700&family=Manrope:wght@400;500;600;700&display=swap" />
-  <link rel="stylesheet" href="estilo-marca.css?v=2fb2136" />
+  <link rel="stylesheet" href="estilo-marca.css?v=8f31f69" />
+  <link rel="icon" type="image/png" sizes="32x32" href="assets/favicon-32.png" />
+  <link rel="icon" type="image/png" sizes="192x192" href="assets/favicon-192.png" />
+  <link rel="apple-touch-icon" href="assets/apple-touch-icon.png" />
+  <meta name="theme-color" content="#1c2149" />
 </head>
 <body class="landing">
 
   <header class="hero" id="inicio">
     <nav class="barra barra-landing" aria-label="Navegación principal">
-      <a class="barra-marca" href="#inicio"><img class="barra-emblema" src="assets/emblema-claro.png" alt="" width="240" height="232" /><span>Tu Viaje Legal 360</span></a>
+      <div class="barra-firma">
+        <a class="barra-marca" href="#inicio"><img class="barra-emblema" src="assets/emblema-claro.png" alt="" width="240" height="232" /><span>Tu Viaje Legal 360</span></a>
+        <button class="versiculo" id="versiculo" type="button" aria-expanded="false" aria-controls="versiculo-texto">Éxodo 33:14</button>
+        <p class="versiculo-texto" id="versiculo-texto" hidden>«Y él dijo: Mi presencia irá contigo, y te daré descanso.»</p>
+      </div>
       <div class="barra-menu">
         <a href="#servicios">Servicios</a>
         <a href="#como-funciona">Cómo funciona</a>
@@ -40,7 +48,7 @@
       </p>
       <div class="hero-acciones">
         <a class="btn-acento" href="agendar.html?servicio=orientacion">Agendar mi consulta</a>
-        <a class="btn-fantasma" href="evaluacion.html">Evaluar mi perfil B1/B2 gratis</a>
+        <a class="btn-fantasma btn-estrella" href="evaluacion.html">Evaluar mi perfil gratis</a>
       </div>
       <p class="hero-nota">Eliges tu horario en un minuto y la consulta es por videollamada. Si buscas visa B1/B2, la evaluación gratis toma 2 minutos.</p>
     </div>
@@ -195,7 +203,7 @@
             <h3>¿Todavía no sabes cuál te conviene?</h3>
             <p>Si buscas una visa B1/B2 para Estados Unidos, organiza tu información inicial y descubre qué conviene revisar.</p>
           </div>
-          <a class="btn-claro gratis-banda-cta" href="evaluacion.html">Evaluar mi perfil gratis</a>
+          <a class="btn-claro btn-estrella gratis-banda-cta" href="evaluacion.html">Evaluar mi perfil gratis</a>
         </div>
       </div>
     </section>
@@ -278,8 +286,8 @@
   <script src="https://unpkg.com/lucide@0.468.0/dist/umd/lucide.min.js"></script>
   <!-- En la demo pública este archivo es config.demo.js, que marca
        DEMO_PUBLICA. Sirve para avisar que todavía no se agendan citas reales. -->
-  <script src="config.js?v=2fb2136"></script>
-  <script src="analitica.js?v=2fb2136"></script>
-  <script src="landing.js?v=2fb2136"></script>
+  <script src="config.js?v=8f31f69"></script>
+  <script src="analitica.js?v=8f31f69"></script>
+  <script src="landing.js?v=8f31f69"></script>
 </body>
 </html>

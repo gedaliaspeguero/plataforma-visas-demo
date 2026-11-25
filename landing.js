@@ -18,4 +18,30 @@ function contactoPorWhatsapp() {
 
 contactoPorWhatsapp();
 
+// El versículo bajo el logo: se ve la cita y, al tocarla, el texto.
+function versiculoBajoElLogo() {
+  const boton = document.getElementById("versiculo");
+  const texto = document.getElementById("versiculo-texto");
+  if (!boton || !texto) return;
+  const mostrar = (abierto) => {
+    texto.hidden = !abierto;
+    boton.setAttribute("aria-expanded", String(abierto));
+  };
+  boton.addEventListener("click", (evento) => {
+    evento.stopPropagation();
+    mostrar(texto.hidden);
+  });
+  document.addEventListener("click", (evento) => {
+    if (!texto.hidden && !texto.contains(evento.target)) mostrar(false);
+  });
+  document.addEventListener("keydown", (evento) => {
+    if (evento.key === "Escape" && !texto.hidden) {
+      mostrar(false);
+      boton.focus();
+    }
+  });
+}
+
+versiculoBajoElLogo();
+
 if (window.lucide) lucide.createIcons();
