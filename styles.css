@@ -1321,3 +1321,19 @@ a.boton-secundario { margin-top: 10px; }
 .precio-fila-variable { grid-template-columns: 1fr; }
 .precio-variable { margin-top: 4px; font-size: 13.5px; color: var(--text-muted); }
 .precio-numero.precio-texto { font-size: 21px; line-height: 1.25; }
+
+/* Eliminar una solicitud: discreto, debajo de todo, en rojo. */
+.agenda-eliminar {
+  display: block;
+  width: 100%;
+  min-height: 44px;
+  margin-top: 6px;
+  border: none;
+  background: none;
+  color: var(--coral-dark);
+  font: inherit;
+  font-size: 14.5px;
+  font-weight: 600;
+  cursor: pointer;
+}
+.agenda-eliminar:disabled { opacity: 0.5; }
