@@ -1413,3 +1413,14 @@ h1[tabindex="-1"]:focus {
 @media (prefers-reduced-motion: reduce) {
   .btn-estrella, .btn-estrella::before, .btn-estrella::after, .versiculo-texto { animation: none; }
 }
+
+/* Celular: la foto de la portada arranca debajo de la barra del logo. Antes
+   empezaba en el borde de arriba y, como la foto casi no tiene aire encima de
+   la asesora que está de pie, la barra y el borde le cortaban la cabeza. */
+@media (max-width: 700px) {
+  .landing .hero-foto {
+    top: 50px;
+    -webkit-mask-image: linear-gradient(to bottom, transparent 0, #000 40px);
+    mask-image: linear-gradient(to bottom, transparent 0, #000 40px);
+  }
+}

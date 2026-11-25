@@ -321,6 +321,49 @@ function computeResult(answers) {
   };
 }
 
+// Todas las respuestas en un texto corto y sin caracteres raros, para el
+// enlace que le llega a la asesora: "1-0.2.1._..." = versión, y por cada
+// pregunta (las 12 y luego las de seguimiento, en este mismo orden) el número
+// de la opción elegida ("02" si eligió varias, "_" si no le tocó).
+// Si se cambia el orden o las opciones de alguna pregunta, subir la versión:
+// los enlaces viejos se leerían mal.
+const VERSION_RESPUESTAS = "1";
+
+function preguntasEnOrden() {
+  return [...QUESTIONS, ...FOLLOW_UPS.map((f) => f.question)];
+}
+
+function encodeAnswersForAdvisor(answers) {
+  const partes = preguntasEnOrden().map((q) => {
+    const valor = answers[q.id];
+    const valores = Array.isArray(valor) ? valor : valor == null ? [] : [valor];
+    const indices = valores
+      .map((v) => q.options.findIndex((o) => o.value === v))
+      .filter((i) => i >= 0)
+      .map((i) => i.toString(36));
+    return indices.join("") || "_";
+  });
+  return `${VERSION_RESPUESTAS}-${partes.join(".")}`;
+}
+
+// Al revés: devuelve cada pregunta con lo que eligió, o null si no se entiende.
+function decodeAnswersForAdvisor(texto) {
+  const m = /^(\d+)-([0-9a-z_.]+)$/.exec(String(texto || ""));
+  if (!m || m[1] !== VERSION_RESPUESTAS) return null;
+  const partes = m[2].split(".");
+  const preguntas = preguntasEnOrden();
+  if (partes.length !== preguntas.length) return null;
+  const lista = [];
+  for (let i = 0; i < preguntas.length; i++) {
+    const q = preguntas[i];
+    if (partes[i] === "_") continue;
+    const elegidas = [...partes[i]].map((c) => q.options[parseInt(c, 36)]);
+    if (elegidas.some((o) => !o)) return null;
+    lista.push({ pregunta: q.text, area: PILLARS[q.pillar]?.label || "", respuestas: elegidas.map((o) => o.label) });
+  }
+  return lista;
+}
+
 // Código compacto para el mensaje de WhatsApp, ej: "VC:M|E:18|L:12|F:15|H:9|FLAGS:NEG,SP"
 function encodeResultForWhatsapp(result) {
   const { bandCode, pillarScores, flags } = result;

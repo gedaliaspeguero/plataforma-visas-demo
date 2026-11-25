@@ -1,0 +1,115 @@
+/* expediente.css — "Mi expediente" del cliente. Se apoya en styles.css. */
+
+.expediente-cuerpo { min-height: 100vh; background: #f6f5f1; }
+
+.exp-barra {
+  display: flex;
+  align-items: center;
+  padding: 14px 20px;
+  background: #1c2149;
+}
+.exp-marca { display: inline-flex; align-items: center; gap: 10px; color: #fff; text-decoration: none; font-family: Georgia, "Times New Roman", serif; font-size: 19px; font-weight: 700; }
+.exp-marca img { width: auto; height: 38px; }
+
+.exp-pantalla { max-width: 620px; margin: 0 auto; padding: 26px 20px 60px; }
+.exp-pantalla h1 { margin: 0 0 8px; font-family: Georgia, "Times New Roman", serif; font-size: 30px; line-height: 1.15; color: var(--ink); }
+
+.exp-form { margin: 22px 0 18px; }
+.exp-form .boton-primario { margin-top: 14px; }
+.exp-error { margin: 10px 0 0; color: var(--coral-dark); font-weight: 600; }
+.exp-aviso { margin: 14px 0 0; padding: 12px 14px; border-radius: 12px; background: #fdf1ee; color: var(--coral-dark); font-weight: 600; }
+.exp-privacidad { margin: 22px 0 0; font-size: 13px; line-height: 1.5; color: var(--text-muted); }
+
+.exp-cabeza { display: flex; align-items: flex-start; justify-content: space-between; gap: 14px; margin-bottom: 18px; }
+.exp-numero { margin: 0 0 4px; font-size: 12.5px; font-weight: 700; letter-spacing: 1.2px; text-transform: uppercase; color: #b3141c; }
+.exp-salir { min-height: 40px; padding: 0 14px; border: 1.5px solid var(--border); border-radius: 10px; background: var(--card); color: var(--text-muted); font: inherit; font-size: 14px; font-weight: 600; cursor: pointer; }
+
+.exp-bloque {
+  margin-bottom: 16px;
+  padding: 18px;
+  border: 1.5px solid var(--border);
+  border-radius: 16px;
+  background: var(--card);
+}
+.exp-bloque h2 { display: flex; align-items: center; gap: 8px; margin: 0 0 14px; font-size: 17px; color: var(--ink); }
+.exp-cuenta { display: inline-block; min-width: 24px; padding: 1px 8px; border-radius: 999px; background: #b3141c; color: #fff; font-size: 13px; text-align: center; }
+.exp-vacio { margin: 0; color: var(--text-muted); font-size: 14.5px; }
+.exp-cerrado { margin: 0 0 12px; font-weight: 600; }
+
+/* Etapas del caso: una línea de pasos. */
+.exp-etapas { margin: 0; padding: 0; list-style: none; }
+.exp-etapas li { position: relative; padding: 0 0 16px 32px; font-size: 15px; color: var(--text-muted); }
+.exp-etapas li:last-child { padding-bottom: 0; }
+.exp-etapas li::before {
+  content: "";
+  position: absolute;
+  left: 4px;
+  top: 3px;
+  width: 14px;
+  height: 14px;
+  border: 2px solid #cfd1dc;
+  border-radius: 50%;
+  background: #fff;
+}
+.exp-etapas li::after {
+  content: "";
+  position: absolute;
+  left: 12px;
+  top: 21px;
+  bottom: -1px;
+  width: 2px;
+  background: #e1e2ea;
+}
+.exp-etapas li:last-child::after { display: none; }
+.exp-etapas li.hecha { color: var(--ink); }
+.exp-etapas li.hecha::before { border-color: #2e9d55; background: #2e9d55; }
+.exp-etapas li.hecha::after { background: #2e9d55; }
+.exp-etapas li.actual { color: var(--ink); font-weight: 700; }
+.exp-etapas li.actual::before { border-color: #b3141c; background: #fff; box-shadow: 0 0 0 4px rgba(179, 20, 28, 0.15); }
+
+/* Lo que pide la asesora. */
+.exp-pedido { padding: 14px; border: 1.5px solid var(--border); border-radius: 12px; margin-bottom: 10px; }
+.exp-pedido.falta { border-color: #f0c2bd; background: #fffaf9; }
+.exp-pedido-fila { display: flex; align-items: flex-start; justify-content: space-between; gap: 10px; }
+.exp-pedido p { margin: 6px 0 0; font-size: 14.5px; color: var(--text-muted); }
+.exp-chip { flex: none; padding: 3px 9px; border-radius: 999px; font-size: 12px; font-weight: 700; }
+.exp-chip.falta { background: #fde4e1; color: #b3141c; }
+.exp-chip.revision { background: #fdf1e1; color: #8a4a12; }
+.exp-chip.listo { background: #e3f3e8; color: #1f6b3a; }
+.exp-subir { display: block; margin-top: 12px; text-align: center; cursor: pointer; }
+.exp-subir.subiendo, .exp-subir-libre.subiendo { opacity: 0.7; pointer-events: none; }
+.exp-otros summary { margin-top: 6px; color: var(--text-muted); font-weight: 600; cursor: pointer; }
+.exp-otros .exp-pedido { margin-top: 10px; }
+
+/* Documentos. */
+.exp-docs { margin: 0 0 6px; padding: 0; list-style: none; }
+.exp-doc {
+  display: grid;
+  grid-template-columns: 44px 1fr;
+  grid-template-rows: auto auto;
+  column-gap: 12px;
+  width: 100%;
+  margin-bottom: 8px;
+  padding: 10px 12px;
+  border: 1.5px solid var(--border);
+  border-radius: 12px;
+  background: #fff;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+.exp-doc-icono { grid-row: 1 / 3; display: grid; place-items: center; height: 44px; border-radius: 8px; background: #1c2149; color: #fff; font-size: 11px; font-weight: 800; }
+.exp-doc-nombre { font-weight: 700; color: var(--ink); overflow-wrap: anywhere; }
+.exp-doc small { color: var(--text-muted); font-size: 12.5px; }
+.exp-subir-libre { display: block; text-align: center; cursor: pointer; }
+
+/* Pagos y citas. */
+.exp-pago { padding: 10px 0; border-top: 1px solid var(--border); }
+.exp-pago:first-of-type { border-top: none; padding-top: 0; }
+.exp-pago span { display: block; color: var(--text-muted); font-size: 14px; }
+.exp-pago b { display: block; font-size: 17px; }
+.exp-pago small { color: var(--text-muted); font-size: 13px; }
+.exp-cita { display: block; padding: 12px 0; border-top: 1px solid var(--border); color: var(--ink); text-decoration: none; }
+.exp-cita:first-of-type { border-top: none; padding-top: 0; }
+.exp-cita span { display: block; font-weight: 700; }
+.exp-cita small { color: var(--text-muted); }

@@ -7,6 +7,9 @@
 // En el sitio público (config.demo.js) se agenda por WhatsApp: el resultado
 // se envía por chat en vez de abrir el agendador.
 const MODO_WHATSAPP = typeof AGENDA_POR_WHATSAPP !== "undefined" && AGENDA_POR_WHATSAPP === true;
+// El panel privado de las asesoras: el resultado del test le llega por WhatsApp
+// como un enlace azul a esta página, que lo abre ya explicado.
+const ENLACE_PANEL = "https://tuviajelegal-app.gedaliaspeguero.workers.dev/panel.html";
 
 const TEXTOS = {
   WHATSAPP_NUMBER: typeof WHATSAPP_NEGOCIO !== "undefined" ? WHATSAPP_NEGOCIO : "18098620377",
@@ -495,7 +498,7 @@ function renderResult() {
 // CTA principal: el resultado viaja pegado a la cita para que la consultora
 // vea el perfil del cliente antes de aceptar el caso.
 function irAAgendar(result) {
-  const codigo = encodeResultForWhatsapp(result);
+  const codigo = `${encodeResultForWhatsapp(result)} r=${encodeAnswersForAdvisor(state.answers)}`;
   try {
     sessionStorage.setItem("perfil_quiz_pendiente", codigo);
     sessionStorage.setItem("nombre_quiz_pendiente", state.userName || "");
@@ -526,7 +529,7 @@ function mensajeWhatsappDelResultado(result) {
     ...areas,
     "",
     `Referencia #${state.caseNumber}`,
-    `Código para el asesor: ${encodeResultForWhatsapp(result)}`,
+    `Detalle para el asesor: ${ENLACE_PANEL}?perfil=${encodeURIComponent(encodeResultForWhatsapp(result))}&r=${encodeAnswersForAdvisor(state.answers)}`,
   ].join("\n");
 }
 
