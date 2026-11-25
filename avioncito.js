@@ -47,8 +47,8 @@ const Avioncito = (() => {
     return `<path d="M ${mx - 14} ${my - 3} Q ${mx} ${my + 13} ${mx + 14} ${my - 3}" stroke="${NAVY}" stroke-width="4.5" stroke-linecap="round" fill="none" />`;
   }
 
-  // `halo`: el resplandor de colores detrás. Es un desenfoque grande y en
-  // celulares modestos cuesta, así que el avioncito pequeño del progreso no lo lleva.
+  // `halo`: el resplandor de colores detrás. Es un degradado, no un
+  // desenfoque: los desenfoques animados son lo que más traba en celulares.
   function svg({ expresion = "feliz", halo = true } = {}) {
     const id = `av${++cuenta}`;
     const mirar = expresion === "pensando" ? { x: -0.5, y: -0.8 } : { x: 0.3, y: 0 };
@@ -61,7 +61,6 @@ const Avioncito = (() => {
     </linearGradient>
     <linearGradient id="${id}-iri" x1="0" y1="0" x2="400" y2="0" gradientUnits="userSpaceOnUse" spreadMethod="reflect">
       <stop offset="0" stop-color="#7ef0ff" /><stop offset="0.35" stop-color="#a78bff" /><stop offset="0.7" stop-color="#ff8fd2" /><stop offset="1" stop-color="#8affc8" />
-      <animateTransform attributeName="gradientTransform" type="translate" from="0 0" to="800 0" dur="9s" repeatCount="indefinite" />
     </linearGradient>
     <linearGradient id="${id}-iris" x1="0" y1="0" x2="1" y2="1">
       <stop offset="0" stop-color="#5fe3ff" /><stop offset="1" stop-color="#a06bff" />
@@ -79,10 +78,12 @@ const Avioncito = (() => {
       <stop offset="0" stop-color="#ffffff" stop-opacity="0.05" /><stop offset="0.8" stop-color="#bfe9ff" stop-opacity="0.35" /><stop offset="1" stop-color="#d6b8ff" stop-opacity="0" />
     </radialGradient>
     <clipPath id="${id}-clip"><path d="${CUERPO}" /></clipPath>
-    ${halo ? `<filter id="${id}-glow" x="-50%" y="-50%" width="200%" height="200%"><feGaussianBlur stdDeviation="18" /></filter>` : ""}
+    <radialGradient id="${id}-halo">
+      <stop offset="0" stop-color="#a78bff" stop-opacity="0.55" /><stop offset="0.5" stop-color="#7ef0ff" stop-opacity="0.22" /><stop offset="1" stop-color="#ff8fd2" stop-opacity="0" />
+    </radialGradient>
   </defs>
 
-  ${halo ? `<g opacity="0.5" filter="url(#${id}-glow)"><path d="${CUERPO}" fill="url(#${id}-iri)" /></g>` : ""}
+  ${halo ? `<ellipse cx="232" cy="142" rx="210" ry="120" fill="url(#${id}-halo)" />` : ""}
 
   <path d="M 206 84 L 184 46 Q 180 39 189 39 L 204 41 Q 210 42 214 47 L 250 82 Z" fill="#141838" />
   <path d="M 116 126 L 92 104 Q 88 99 95 99 L 106 100 L 136 118 Z" fill="#141838" />

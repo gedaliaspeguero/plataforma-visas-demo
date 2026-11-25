@@ -1360,7 +1360,9 @@ h1[tabindex="-1"]:focus {
   background: linear-gradient(90deg, #e3262e, #f26b1d, #d99a00, #1f9d55, #1f7ae0, #7b3fe4, #d6339c, #e3262e) !important;
   background-size: 300% 100% !important;
   text-shadow: 0 1px 2px rgba(0, 0, 0, 0.55);
-  animation: estrella-colores 1.4s linear infinite, estrella-luz 1.4s linear infinite;
+  /* El brillo de alrededor va fijo: animar una sombra obliga a repintar en cada cuadro. */
+  box-shadow: 0 0 20px rgba(214, 51, 156, 0.55), 0 0 6px rgba(31, 122, 224, 0.5);
+  animation: estrella-colores 1.4s linear infinite;
 }
 /* Grano de ruido que tiembla encima de los colores. */
 .btn-estrella::before {

@@ -99,7 +99,7 @@ function escapar(texto) {
   const cielo = document.getElementById("estrellas");
   if (!cielo) return;
   let html = "";
-  for (let i = 0; i < 46; i++) {
+  for (let i = 0; i < 28; i++) {
     const tam = (1.5 + Math.random() * 2.5).toFixed(1);
     html += `<span class="estrella" style="left:${(Math.random() * 100).toFixed(2)}%;top:${(Math.random() * 100).toFixed(2)}%;width:${tam}px;height:${tam}px;animation-delay:${(Math.random() * 3).toFixed(2)}s;animation-duration:${(2.2 + Math.random() * 2.6).toFixed(2)}s"></span>`;
   }
